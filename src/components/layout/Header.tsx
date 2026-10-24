@@ -73,6 +73,11 @@ export const Header: React.FC = () => {
           title: 'Rapports Financiers & Exports',
           subtitle: 'Rentabilité par véhicule, balance âgée et export CSV',
         };
+      case 'archives':
+        return {
+          title: 'Archives & Historique',
+          subtitle: 'Retrouvez les anciens documents et les éléments retirés',
+        };
       case 'parametres':
         return {
           title: 'Paramètres & Société',

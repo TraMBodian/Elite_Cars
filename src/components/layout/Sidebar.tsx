@@ -11,6 +11,7 @@ import {
   Calculator,
   BarChart3,
   Settings,
+  Archive,
   Code2,
   ShieldCheck,
   AlertCircle,
@@ -76,6 +77,7 @@ export const Sidebar: React.FC = () => {
     { id: 'depenses', label: 'Dépenses & Charges', icon: Receipt },
     { id: 'comptabilite', label: 'Comptabilité', icon: Calculator },
     { id: 'rapports', label: 'Rapports & Stats', icon: BarChart3 },
+    { id: 'archives', label: 'Archives & Historique', icon: Archive },
     { id: 'parametres', label: 'Paramètres', icon: Settings },
     { id: 'architecture', label: 'API & Django / SQL', icon: Code2, highlight: true },
   ];

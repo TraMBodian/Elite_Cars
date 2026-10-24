@@ -1,10 +1,10 @@
 import { UserRole } from '../types';
 
 const tabPermissions: Record<UserRole, string[]> = {
-  ADMIN: ['dashboard', 'clients', 'vehicules', 'reservations', 'factures', 'paiements', 'depenses', 'comptabilite', 'rapports', 'parametres'],
-  MANAGER: ['dashboard', 'clients', 'vehicules', 'reservations'],
-  ACCOUNTANT: ['dashboard', 'clients', 'factures', 'paiements', 'depenses', 'comptabilite', 'rapports'],
-  EMPLOYEE: ['dashboard', 'clients', 'vehicules', 'reservations'],
+  ADMIN: ['dashboard', 'clients', 'vehicules', 'reservations', 'factures', 'paiements', 'depenses', 'comptabilite', 'rapports', 'parametres', 'archives'],
+  MANAGER: ['dashboard', 'clients', 'vehicules', 'reservations', 'archives'],
+  ACCOUNTANT: ['dashboard', 'clients', 'factures', 'paiements', 'depenses', 'comptabilite', 'rapports', 'archives'],
+  EMPLOYEE: ['dashboard', 'clients', 'vehicules', 'reservations', 'archives'],
 };
 
 export const canAccessTab = (role: UserRole, tab: string): boolean =>

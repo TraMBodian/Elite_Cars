@@ -68,12 +68,14 @@ interface AppContextType {
   addClient: (client: Omit<Client, 'id' | 'createdAt' | 'deletedAt'>) => Client;
   updateClient: (id: string, updates: Partial<Client>) => void;
   deleteClient: (id: string) => boolean;
+  restoreClient: (id: string) => void;
 
   // Vehicles
   vehicles: Vehicle[];
   addVehicle: (vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>) => Vehicle;
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => boolean;
+  restoreVehicle: (id: string) => void;
 
   // Reservations
   reservations: Reservation[];
@@ -82,6 +84,7 @@ interface AppContextType {
   cancelReservation: (id: string, reason: string) => void;
   completeReservation: (id: string, returnMileage: number, fuelLevelReturn: string) => void;
   deleteReservation: (id: string) => void;
+  restoreReservation: (id: string) => boolean;
   checkVehicleAvailability: (vehicleId: string, startDate: string, endDate: string, excludeReservationId?: string) => { available: boolean; conflictWith?: Reservation };
 
   // Invoices
@@ -90,6 +93,7 @@ interface AppContextType {
   updateInvoice: (id: string, updates: Partial<Invoice>) => void;
   cancelInvoice: (id: string, reason: string) => boolean;
   deleteInvoice: (id: string) => { success: boolean; error?: string };
+  restoreInvoice: (id: string) => void;
   duplicateInvoice: (id: string) => Promise<Invoice | null>;
   generateInvoiceFromReservation: (reservationId: string) => Promise<Invoice | null>;
 
@@ -103,6 +107,7 @@ interface AppContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'deletedAt'>) => Expense;
   updateExpense: (id: string, updates: Partial<Expense>) => void;
   deleteExpense: (id: string) => void;
+  restoreExpense: (id: string) => void;
 
   // Audit Logs
   auditLogs: AuditLog[];
@@ -625,6 +630,14 @@ export const AppProvider: React.FC<{
     return true;
   };
 
+  const restoreClient = (id: string) => {
+    const client = clients.find((record) => record.id === id);
+    if (!client?.deletedAt) return;
+    setClients((prev) => prev.map((record) => record.id === id ? { ...record, deletedAt: null } : record));
+    logAction('UPDATE', 'CLIENT', id, `Restauration du client ${client.fullName} depuis les archives`);
+    showToast(`Client ${client.fullName} restauré.`);
+  };
+
   // Vehicles
   const addVehicle = (vehicleData: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>): Vehicle => {
     const newVehicle: Vehicle = {
@@ -653,10 +666,18 @@ export const AppProvider: React.FC<{
       showToast('Impossible de supprimer un véhicule actuellement loué ou réservé.', 'error');
       return false;
     }
-    setVehicles((prev) => prev.map((v) => (v.id === id ? { ...v, deletedAt: new Date().toISOString(), status: 'HORS_SERVICE' } : v)));
+    setVehicles((prev) => prev.map((v) => (v.id === id ? { ...v, deletedAt: new Date().toISOString() } : v)));
     logAction('DELETE', 'VEHICULE', id, `Suppression logique du véhicule ID ${id}`);
     showToast('Véhicule retiré de la flotte.');
     return true;
+  };
+
+  const restoreVehicle = (id: string) => {
+    const vehicle = vehicles.find((record) => record.id === id);
+    if (!vehicle?.deletedAt) return;
+    setVehicles((prev) => prev.map((record) => record.id === id ? { ...record, deletedAt: null } : record));
+    logAction('UPDATE', 'VEHICULE', id, `Restauration du véhicule ${vehicle.licensePlate} depuis les archives`);
+    showToast(`Véhicule ${vehicle.licensePlate} restauré dans la flotte.`);
   };
 
   // Availability check
@@ -818,6 +839,32 @@ export const AppProvider: React.FC<{
     showToast('Réservation supprimée.');
   };
 
+  const restoreReservation = (id: string): boolean => {
+    const reservation = reservations.find((record) => record.id === id);
+    if (!reservation?.deletedAt) return false;
+    if (reservation.status === 'ACTIVE' || reservation.status === 'CONFIRMEE') {
+      const availability = checkVehicleAvailability(
+        reservation.vehicleId,
+        reservation.startDate,
+        reservation.endDate,
+        reservation.id
+      );
+      if (!availability.available) {
+        showToast(`Restauration impossible : conflit avec la réservation ${availability.conflictWith?.reference}.`, 'error');
+        return false;
+      }
+    }
+    setReservations((prev) => prev.map((record) => record.id === id ? { ...record, deletedAt: null } : record));
+    if (reservation.status === 'ACTIVE') {
+      setVehicles((prev) => prev.map((vehicle) =>
+        vehicle.id === reservation.vehicleId ? { ...vehicle, status: 'LOUE' } : vehicle
+      ));
+    }
+    logAction('UPDATE', 'RESERVATION', id, `Restauration de la réservation ${reservation.reference} depuis les archives`);
+    showToast(`Réservation ${reservation.reference} restaurée.`);
+    return true;
+  };
+
   // Invoices
   const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Invoice => {
     const newInv: Invoice = {
@@ -896,6 +943,16 @@ export const AppProvider: React.FC<{
     logAction('DELETE', 'FACTURE', id, `Suppression logique facture ${invoice.number}`);
     showToast(`Facture ${invoice.number} supprimée.`);
     return { success: true };
+  };
+
+  const restoreInvoice = (id: string) => {
+    const invoice = invoices.find((record) => record.id === id);
+    if (!invoice?.deletedAt) return;
+    setInvoices((prev) => prev.map((record) =>
+      record.id === id ? { ...record, deletedAt: null, updatedAt: new Date().toISOString() } : record
+    ));
+    logAction('UPDATE', 'FACTURE', id, `Restauration de la facture ${invoice.number} depuis les archives`);
+    showToast(`Facture ${invoice.number} restaurée.`);
   };
 
   const duplicateInvoice = async (id: string): Promise<Invoice | null> => {
@@ -1191,6 +1248,14 @@ export const AppProvider: React.FC<{
     showToast('Dépense supprimée.');
   };
 
+  const restoreExpense = (id: string) => {
+    const expense = expenses.find((record) => record.id === id);
+    if (!expense?.deletedAt) return;
+    setExpenses((prev) => prev.map((record) => record.id === id ? { ...record, deletedAt: null } : record));
+    logAction('UPDATE', 'DEPENSE', id, `Restauration de la dépense ${expense.reference} depuis les archives`);
+    showToast(`Dépense ${expense.reference} restaurée.`);
+  };
+
   // Reset to initial demo data
   const resetDemoData = () => {
     if (isCloudMode) {
@@ -1242,22 +1307,26 @@ export const AppProvider: React.FC<{
         addClient,
         updateClient,
         deleteClient,
+        restoreClient,
         vehicles,
         addVehicle,
         updateVehicle,
         deleteVehicle,
+        restoreVehicle,
         reservations,
         addReservation,
         updateReservation,
         cancelReservation,
         completeReservation,
         deleteReservation,
+        restoreReservation,
         checkVehicleAvailability,
         invoices,
         addInvoice,
         updateInvoice,
         cancelInvoice,
         deleteInvoice,
+        restoreInvoice,
         duplicateInvoice,
         generateInvoiceFromReservation,
         payments,
@@ -1267,6 +1336,7 @@ export const AppProvider: React.FC<{
         addExpense,
         updateExpense,
         deleteExpense,
+        restoreExpense,
         auditLogs,
         logAction,
         toasts,

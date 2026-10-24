@@ -19,6 +19,7 @@ import { AccountingView } from './components/accounting/AccountingView';
 import { ReportsView } from './components/reports/ReportsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { ArchitectureView } from './components/architecture/ArchitectureView';
+import { ArchivesView } from './components/archives/ArchivesView';
 import { canAccessTab } from './utils/permissions';
 
 const MainContent: React.FC = () => {
@@ -49,6 +50,8 @@ const MainContent: React.FC = () => {
         return <AccountingView />;
       case 'rapports':
         return <ReportsView />;
+      case 'archives':
+        return <ArchivesView />;
       case 'parametres':
         return <SettingsView />;
       case 'architecture':
