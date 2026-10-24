@@ -1,0 +1,5 @@
+{
+  "name": "Elite Cars",
+  "description": "Gestion de flotte, réservations, factures, paiements et dépenses.",
+  "requestFramePermissions": []
+}
