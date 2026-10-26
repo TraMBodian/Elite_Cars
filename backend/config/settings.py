@@ -24,10 +24,7 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get(
-    "postgresql://postgres:Mamanviemarie1@db.lbhncndnzyeqjnzqnqlx.supabase.co:5432/postgres", 
-    "django-insecure-valeur-temporaire-pour-build"
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-valeur-temporaire-pour-build")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}
