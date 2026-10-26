@@ -1,7 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+const normalizeEnvironmentValue = (value: string | undefined): string | undefined => {
+  const trimmedValue = value?.trim();
+  if (
+    trimmedValue &&
+    trimmedValue.length >= 2 &&
+    ((trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+      (trimmedValue.startsWith("'") && trimmedValue.endsWith("'")))
+  ) {
+    return trimmedValue.slice(1, -1).trim();
+  }
+  return trimmedValue;
+};
+
+const supabaseUrl = normalizeEnvironmentValue(import.meta.env.VITE_SUPABASE_URL);
+const supabaseAnonKey = normalizeEnvironmentValue(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const isValidSupabaseUrl = (value: string | undefined): value is string => {
   if (!value) return false;
@@ -18,12 +31,13 @@ export const hasInvalidSupabaseUrl = Boolean(supabaseUrl) && !isValidSupabaseUrl
 export const hasPartialSupabaseConfig = Boolean(supabaseUrl) !== Boolean(supabaseAnonKey);
 export const isSupabaseConfigured = isValidSupabaseUrl(supabaseUrl) && Boolean(supabaseAnonKey);
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey!, {
+export const supabase =
+  supabaseUrl && supabaseAnonKey && isValidSupabaseUrl(supabaseUrl)
+    ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
       },
-    })
-  : null;
+      })
+    : null;
