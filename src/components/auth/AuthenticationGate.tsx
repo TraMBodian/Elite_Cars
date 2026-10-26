@@ -3,7 +3,12 @@ import type { Session } from '@supabase/supabase-js';
 import { AppProvider, AppInitialData } from '../../context/AppContext';
 import { initialCompanySettings } from '../../data/mockData';
 import { CompanySettings, User, UserRole } from '../../types';
-import { hasPartialSupabaseConfig, isSupabaseConfigured, supabase } from '../../lib/supabase';
+import {
+  hasInvalidSupabaseUrl,
+  hasPartialSupabaseConfig,
+  isSupabaseConfigured,
+  supabase,
+} from '../../lib/supabase';
 
 interface MembershipRow {
   company_id: string;
@@ -19,6 +24,8 @@ interface CloudBootstrap {
   companyId: string;
   initialData: AppInitialData;
 }
+
+const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const companyDefaults: CompanySettings = {
   ...initialCompanySettings,
@@ -127,6 +134,7 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
 
   useEffect(() => {
     if (!supabase) return;
@@ -149,6 +157,52 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!session || !supabase) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const resetIdleTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        void supabase!.auth.signOut().then(({ error }) => {
+          if (error) {
+            setCloudBootstrap(null);
+            setAuthError(`Déconnexion automatique impossible : ${error.message}`);
+            return;
+          }
+          setAuthMessage('Votre session a été fermée après 15 minutes sans activité.');
+        }).catch((error: unknown) => {
+          setCloudBootstrap(null);
+          setAuthError(
+            `Déconnexion automatique impossible : ${
+              error instanceof Error ? error.message : 'une erreur inattendue est survenue.'
+            }`,
+          );
+        });
+      }, SESSION_IDLE_TIMEOUT_MS);
+    };
+
+    const activityEvents: (keyof WindowEventMap)[] = [
+      'pointerdown',
+      'pointermove',
+      'keydown',
+      'scroll',
+      'touchstart',
+    ];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetIdleTimeout, { passive: true });
+    });
+    resetIdleTimeout();
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetIdleTimeout);
+      });
+    };
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (!session || !supabase) {
@@ -185,6 +239,7 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     if (!supabase) return;
 
     setAuthError('');
+    setAuthMessage('');
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) setAuthError(error.message);
   };
@@ -199,7 +254,9 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     if (hasPartialSupabaseConfig || !import.meta.env.DEV) {
       return (
         <SetupMessage>
-          Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer les comptes et les données partagées.
+          {hasInvalidSupabaseUrl
+            ? 'La configuration Supabase est invalide : vérifiez VITE_SUPABASE_URL dans les variables d’environnement Vercel. Elle doit commencer par https:// et correspondre à l’URL de votre projet Supabase.'
+            : 'Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer les comptes et les données partagées.'}
         </SetupMessage>
       );
     }
@@ -280,6 +337,7 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
           className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
 
+        {authMessage && <p role="status" className="mb-4 text-sm text-slate-600">{authMessage}</p>}
         {authError && <p role="alert" className="mb-4 text-sm text-red-700">{authError}</p>}
         <button type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
           Se connecter
