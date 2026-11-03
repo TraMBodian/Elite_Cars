@@ -24,6 +24,7 @@ import { canAccessTab } from './utils/permissions';
 
 const MainContent: React.FC = () => {
   const { activeTab, currentUser, setActiveTab } = useApp();
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 
   React.useEffect(() => {
     if (!canAccessTab(currentUser.role, activeTab)) setActiveTab('dashboard');
@@ -64,7 +65,10 @@ const MainContent: React.FC = () => {
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-[#0F172A] overflow-hidden font-sans">
       {/* Fixed Left Sidebar */}
-      <Sidebar />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
+      />
 
       {/* Main App Container */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
