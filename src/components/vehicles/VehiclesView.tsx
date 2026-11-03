@@ -22,11 +22,28 @@ import {
 } from 'lucide-react';
 import { Vehicle, VehicleStatus, VehicleCategory, FuelType, TransmissionType } from '../../types';
 import { formatCurrency, formatDate, exportToCSV, isDateExpiredOrSoon } from '../../utils/formatters';
+import { canManageVehicles } from '../../utils/permissions';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
+type VehicleFormData = Omit<
+  Vehicle,
+  'id' | 'createdAt' | 'deletedAt' | 'category' | 'transmission' | 'fuel' | 'status'
+> & {
+  category: VehicleCategory | '';
+  transmission: TransmissionType | '';
+  fuel: FuelType | '';
+  status: VehicleStatus | '';
+};
+
+const hasVehicleSelections = (
+  data: VehicleFormData
+): data is Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'> =>
+  Boolean(data.category && data.transmission && data.fuel && data.status);
+
 export const VehiclesView: React.FC = () => {
-  const { vehicles, addVehicle, updateVehicle, deleteVehicle, reservations, expenses, settings, openPreviewDoc } = useApp();
+  const { currentUser, vehicles, addVehicle, updateVehicle, deleteVehicle, reservations, expenses, settings, openPreviewDoc } = useApp();
+  const canEditVehicles = canManageVehicles(currentUser.role);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | VehicleStatus>('ALL');
@@ -37,27 +54,27 @@ export const VehiclesView: React.FC = () => {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VehicleFormData>({
     brand: '',
     model: '',
     licensePlate: '',
-    year: 2024,
-    category: 'SUV' as VehicleCategory,
-    transmission: 'AUTOMATIQUE' as TransmissionType,
-    fuel: 'DIESEL' as FuelType,
-    seats: 5,
-    currentMileage: 25000,
-    dailyRate: 45000,
-    weeklyRate: 280000,
-    monthlyRate: 950000,
-    depositAmount: 200000,
-    status: 'DISPONIBLE' as VehicleStatus,
-    color: 'Noir',
-    insuranceExpiry: '2027-01-01',
-    insuranceCompany: 'AXA Assurances',
-    technicalInspectionExpiry: '2026-12-31',
-    lastOilChangeMileage: 20000,
-    nextOilChangeMileage: 30000,
+    year: 0,
+    category: '',
+    transmission: '',
+    fuel: '',
+    seats: 0,
+    currentMileage: 0,
+    dailyRate: 0,
+    weeklyRate: 0,
+    monthlyRate: 0,
+    depositAmount: 0,
+    status: '',
+    color: '',
+    insuranceExpiry: '',
+    insuranceCompany: '',
+    technicalInspectionExpiry: '',
+    lastOilChangeMileage: 0,
+    nextOilChangeMileage: 0,
     notes: '',
   });
 
@@ -85,23 +102,23 @@ export const VehiclesView: React.FC = () => {
       brand: '',
       model: '',
       licensePlate: '',
-      year: new Date().getFullYear(),
-      category: 'BERLINE',
-      transmission: 'AUTOMATIQUE',
-      fuel: 'ESSENCE',
-      seats: 5,
-      currentMileage: 10000,
-      dailyRate: 40000,
-      weeklyRate: 240000,
-      monthlyRate: 850000,
-      depositAmount: 150000,
-      status: 'DISPONIBLE',
-      color: 'Gris',
-      insuranceExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      insuranceCompany: 'Sunu Assurances',
-      technicalInspectionExpiry: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lastOilChangeMileage: 10000,
-      nextOilChangeMileage: 20000,
+      year: 0,
+      category: '',
+      transmission: '',
+      fuel: '',
+      seats: 0,
+      currentMileage: 0,
+      dailyRate: 0,
+      weeklyRate: 0,
+      monthlyRate: 0,
+      depositAmount: 0,
+      status: '',
+      color: '',
+      insuranceExpiry: '',
+      insuranceCompany: '',
+      technicalInspectionExpiry: '',
+      lastOilChangeMileage: 0,
+      nextOilChangeMileage: 0,
       notes: '',
     });
     setIsModalOpen(true);
@@ -137,12 +154,17 @@ export const VehiclesView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.brand.trim() || !formData.model.trim() || !formData.licensePlate.trim()) return;
+    if (
+      !formData.brand.trim() ||
+      !formData.model.trim() ||
+      !formData.licensePlate.trim() ||
+      !hasVehicleSelections(formData)
+    ) return;
 
     if (editingVehicle) {
       updateVehicle(editingVehicle.id, formData);
     } else {
-      addVehicle(formData);
+      if (!addVehicle(formData)) return;
     }
     setIsModalOpen(false);
   };
@@ -238,18 +260,30 @@ export const VehiclesView: React.FC = () => {
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button
+          {canEditVehicles && <button
             onClick={handleOpenAdd}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Ajouter Véhicule</span>
-          </button>
+          </button>}
         </div>
       </div>
 
+      {activeVehicles.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+          <Car className="mx-auto h-10 w-10 text-slate-300" />
+          <h3 className="mt-3 text-sm font-semibold text-slate-800">Aucun véhicule enregistré</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            {canEditVehicles
+              ? 'Ajoutez les véhicules réels de votre flotte pour commencer.'
+              : 'Les véhicules ajoutés à la flotte apparaîtront ici.'}
+          </p>
+        </div>
+      )}
+
       {/* Grid View */}
-      {viewMode === 'GRID' && (
+      {activeVehicles.length > 0 && viewMode === 'GRID' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVehicles.map((v) => {
             const insAlert = isDateExpiredOrSoon(v.insuranceExpiry, 15);
@@ -263,14 +297,13 @@ export const VehiclesView: React.FC = () => {
               >
                 {/* Image & Badges */}
                 <div className="relative h-44 bg-slate-100 overflow-hidden">
-                  <img
-                    src={
-                      v.imageUrl ||
-                      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80'
-                    }
-                    alt={`${v.brand} ${v.model}`}
-                    className="w-full h-full object-cover"
-                  />
+                  {v.imageUrl ? (
+                    <img src={v.imageUrl} alt={`${v.brand} ${v.model}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-slate-300">
+                      <Car className="h-12 w-12" />
+                    </div>
+                  )}
                   <div className="absolute top-3 left-3">
                     <StatusBadge status={v.status} />
                   </div>
@@ -355,14 +388,14 @@ export const VehiclesView: React.FC = () => {
                     </button>
 
                     <div className="flex items-center gap-1">
-                      <button
+                      {canEditVehicles && <button
                         onClick={() => handleOpenEdit(v)}
                         className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded transition"
                         title="Modifier"
                       >
                         <Edit className="h-3.5 w-3.5" />
-                      </button>
-                      <button
+                      </button>}
+                      {canEditVehicles && <button
                         onClick={() => {
                           if (window.confirm(`Retirer le véhicule ${v.brand} ${v.model} (${v.licensePlate}) ?`)) {
                             deleteVehicle(v.id);
@@ -372,7 +405,7 @@ export const VehiclesView: React.FC = () => {
                         title="Supprimer"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 </div>
@@ -383,7 +416,7 @@ export const VehiclesView: React.FC = () => {
       )}
 
       {/* Table View */}
-      {viewMode === 'TABLE' && (
+      {activeVehicles.length > 0 && viewMode === 'TABLE' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600">
@@ -448,13 +481,13 @@ export const VehiclesView: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
+                        {canEditVehicles && <button
                           onClick={() => handleOpenEdit(v)}
                           className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded transition"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button
+                        </button>}
+                        {canEditVehicles && <button
                           onClick={() => {
                             if (window.confirm(`Supprimer ${v.brand} ${v.model} ?`)) {
                               deleteVehicle(v.id);
@@ -463,7 +496,7 @@ export const VehiclesView: React.FC = () => {
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>
@@ -519,14 +552,52 @@ export const VehiclesView: React.FC = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Année *</label>
+              <input
+                type="number"
+                required
+                min="1900"
+                max={new Date().getFullYear() + 1}
+                value={formData.year || ''}
+                onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre de places *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                max="100"
+                value={formData.seats || ''}
+                onChange={(e) => setFormData({ ...formData, seats: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Couleur</label>
+              <input
+                type="text"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Catégorie</label>
               <select
+                required
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value as VehicleCategory | '' })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               >
+                <option value="">Choisir...</option>
                 <option value="SUV">SUV</option>
                 <option value="BERLINE">Berline</option>
                 <option value="CITADINE">Citadine</option>
@@ -538,10 +609,12 @@ export const VehiclesView: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Boîte</label>
               <select
+                required
                 value={formData.transmission}
-                onChange={(e) => setFormData({ ...formData, transmission: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, transmission: e.target.value as TransmissionType | '' })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               >
+                <option value="">Choisir...</option>
                 <option value="AUTOMATIQUE">Automatique</option>
                 <option value="MANUELLE">Manuelle</option>
               </select>
@@ -549,10 +622,12 @@ export const VehiclesView: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Carburant</label>
               <select
+                required
                 value={formData.fuel}
-                onChange={(e) => setFormData({ ...formData, fuel: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, fuel: e.target.value as FuelType | '' })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               >
+                <option value="">Choisir...</option>
                 <option value="DIESEL">Diesel</option>
                 <option value="ESSENCE">Essence</option>
                 <option value="HYBRIDE">Hybride</option>
@@ -562,10 +637,12 @@ export const VehiclesView: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Statut initial</label>
               <select
+                required
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as VehicleStatus | '' })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold"
               >
+                <option value="">Choisir...</option>
                 <option value="DISPONIBLE">Disponible</option>
                 <option value="LOUE">Loué</option>
                 <option value="MAINTENANCE">En maintenance</option>
@@ -580,7 +657,8 @@ export const VehiclesView: React.FC = () => {
               <input
                 type="number"
                 required
-                value={formData.dailyRate}
+                min="1"
+                value={formData.dailyRate || ''}
                 onChange={(e) => setFormData({ ...formData, dailyRate: Number(e.target.value) })}
                 className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-bold"
               />
@@ -589,7 +667,8 @@ export const VehiclesView: React.FC = () => {
               <label className="block text-xs font-semibold text-blue-900 mb-1">Tarif Semaine</label>
               <input
                 type="number"
-                value={formData.weeklyRate}
+                min="0"
+                value={formData.weeklyRate || ''}
                 onChange={(e) => setFormData({ ...formData, weeklyRate: Number(e.target.value) })}
                 className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs"
               />
@@ -598,7 +677,8 @@ export const VehiclesView: React.FC = () => {
               <label className="block text-xs font-semibold text-blue-900 mb-1">Tarif Mois</label>
               <input
                 type="number"
-                value={formData.monthlyRate}
+                min="0"
+                value={formData.monthlyRate || ''}
                 onChange={(e) => setFormData({ ...formData, monthlyRate: Number(e.target.value) })}
                 className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs"
               />
@@ -607,7 +687,8 @@ export const VehiclesView: React.FC = () => {
               <label className="block text-xs font-semibold text-blue-900 mb-1">Caution (FCFA)</label>
               <input
                 type="number"
-                value={formData.depositAmount}
+                min="0"
+                value={formData.depositAmount || ''}
                 onChange={(e) => setFormData({ ...formData, depositAmount: Number(e.target.value) })}
                 className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-semibold text-slate-800"
               />
@@ -652,7 +733,8 @@ export const VehiclesView: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Kilométrage actuel (km)</label>
               <input
                 type="number"
-                value={formData.currentMileage}
+                min="0"
+                value={formData.currentMileage || ''}
                 onChange={(e) => setFormData({ ...formData, currentMileage: Number(e.target.value) })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               />
@@ -661,7 +743,8 @@ export const VehiclesView: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Prochaine Vidange (km)</label>
               <input
                 type="number"
-                value={formData.nextOilChangeMileage}
+                min="0"
+                value={formData.nextOilChangeMileage || ''}
                 onChange={(e) => setFormData({ ...formData, nextOilChangeMileage: Number(e.target.value) })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               />

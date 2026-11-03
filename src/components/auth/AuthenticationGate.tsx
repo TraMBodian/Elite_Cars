@@ -147,9 +147,10 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
       setCheckingSession(false);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setAuthError('');
+      if (event === 'SIGNED_OUT') setPassword('');
     });
 
     return () => {
@@ -241,7 +242,11 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     setAuthError('');
     setAuthMessage('');
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) setAuthError(error.message);
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+    setPassword('');
   };
 
   const handleSignOut = async () => {

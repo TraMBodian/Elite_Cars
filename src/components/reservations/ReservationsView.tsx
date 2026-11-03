@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Reservation, ReservationOption, ReservationStatus } from '../../types';
 import { formatCurrency, formatDate, calculateDaysBetween, exportToCSV } from '../../utils/formatters';
+import { calculateRentalPrice } from '../../utils/rentalPricing';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -105,22 +106,29 @@ export const ReservationsView: React.FC = () => {
   // Compute calculated amounts dynamically for modal
   const selectedVehicleObj = vehicles.find((v) => v.id === formData.vehicleId);
   const calculatedDays = calculateDaysBetween(formData.startDate, formData.endDate);
+  const rentalPrice = selectedVehicleObj
+    ? calculateRentalPrice(selectedVehicleObj, calculatedDays)
+    : {
+        amount: 0,
+        discountAmount: 0,
+        appliedDailyRate: 0,
+        rateType: 'JOURNALIER' as const,
+        monthlyPeriods: 0,
+        remainingDays: calculatedDays,
+      };
+  const baseCalculatedAmount = rentalPrice.amount;
 
-  const baseCalculatedAmount = useMemo(() => {
-    if (!selectedVehicleObj) return 0;
-    // Applied logic: if >= 30 days -> monthly prorata, if >= 7 days -> weekly prorata, else daily
-    if (calculatedDays >= 30) {
-      return Math.round((selectedVehicleObj.monthlyRate / 30) * calculatedDays);
-    } else if (calculatedDays >= 7) {
-      return Math.round((selectedVehicleObj.weeklyRate / 7) * calculatedDays);
-    } else {
-      return selectedVehicleObj.dailyRate * calculatedDays;
-    }
-  }, [selectedVehicleObj, calculatedDays]);
-
-  const totalOptionsCalculated = useMemo(() => {
-    return formData.selectedOptions.reduce((acc, opt) => acc + opt.totalPrice, 0);
-  }, [formData.selectedOptions]);
+  const calculatedOptions = useMemo(
+    () => formData.selectedOptions.map((option) => {
+      const quantity = option.chargeType === 'PAR_JOUR' ? calculatedDays : option.quantity;
+      return { ...option, quantity, totalPrice: option.unitPrice * quantity };
+    }),
+    [formData.selectedOptions, calculatedDays]
+  );
+  const totalOptionsCalculated = useMemo(
+    () => calculatedOptions.reduce((total, option) => total + option.totalPrice, 0),
+    [calculatedOptions]
+  );
 
   const totalEstimatedCalculated = Math.max(
     0,
@@ -215,10 +223,10 @@ export const ReservationsView: React.FC = () => {
       endTime: formData.endTime,
       pickupLocation: formData.pickupLocation,
       returnLocation: formData.returnLocation,
-      rateTypeApplied: calculatedDays >= 30 ? 'MENSUEL' : calculatedDays >= 7 ? 'HEBDOMADAIRE' : 'JOURNALIER',
-      baseRate: targetVehicle?.dailyRate || 0,
+      rateTypeApplied: rentalPrice.rateType,
+      baseRate: rentalPrice.appliedDailyRate,
       totalDays: calculatedDays,
-      options: formData.selectedOptions,
+      options: calculatedOptions,
       totalOptionsAmount: totalOptionsCalculated,
       baseAmount: baseCalculatedAmount,
       discountAmount: formData.discountAmount,
@@ -649,6 +657,24 @@ export const ReservationsView: React.FC = () => {
               <p className="text-[11px] text-slate-400">
                 Base location : {formatCurrency(baseCalculatedAmount, settings)}
               </p>
+              <p className="text-[11px] text-slate-400">
+                Tarif : {formatCurrency(selectedVehicleObj?.dailyRate || 0, settings)} / jour
+              </p>
+              {rentalPrice.rateType === 'MENSUEL' && (
+                <p className="text-[11px] text-slate-300">
+                  {rentalPrice.monthlyPeriods} mois × {formatCurrency(selectedVehicleObj?.monthlyRate || 0, settings)}
+                  {rentalPrice.remainingDays > 0 &&
+                    ` + ${rentalPrice.remainingDays} jour(s) × ${formatCurrency(
+                      Math.max(0, (selectedVehicleObj?.dailyRate || 0) - 5000),
+                      settings
+                    )}`}
+                </p>
+              )}
+              {rentalPrice.discountAmount > 0 && (
+                <p className="text-[11px] text-emerald-300">
+                  Remise longue durée : −{formatCurrency(rentalPrice.discountAmount, settings)}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-slate-400">Caution exigée :</p>

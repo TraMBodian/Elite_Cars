@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from './Modal';
 import { ExpenseCategory, PaymentMethod } from '../../types';
 import { calculateDaysBetween, formatCurrency } from '../../utils/formatters';
+import { calculateRentalPrice } from '../../utils/rentalPricing';
 import { canUseQuickAction } from '../../utils/permissions';
 
 export const QuickActionModals: React.FC = () => {
@@ -33,11 +34,16 @@ export const QuickActionModals: React.FC = () => {
   const [resVehicleId, setResVehicleId] = useState('');
   const [resStart, setResStart] = useState(today);
   const [resEnd, setResEnd] = useState(next3Days);
+  const quickVehicle = vehicles.find((vehicle) => vehicle.id === resVehicleId) ??
+    vehicles.find((vehicle) => vehicle.status === 'DISPONIBLE') ??
+    vehicles[0];
+  const quickRentalDays = calculateDaysBetween(resStart, resEnd);
+  const quickRentalPrice = quickVehicle ? calculateRentalPrice(quickVehicle, quickRentalDays) : null;
 
   // States for Quick Payment
   const [payClientId, setPayClientId] = useState('');
   const [payInvoiceId, setPayInvoiceId] = useState('');
-  const [payAmount, setPayAmount] = useState(50000);
+  const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState<PaymentMethod>('MOBILE_MONEY');
 
   // States for Quick Expense
@@ -53,7 +59,7 @@ export const QuickActionModals: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
     const cId = resClientId || clients[0]?.id;
-    const vId = resVehicleId || vehicles[0]?.id;
+    const vId = resVehicleId || vehicles.find((vehicle) => vehicle.status === 'DISPONIBLE')?.id || vehicles[0]?.id;
 
     if (!cId || !vId) {
       setErrorMsg('Veuillez sélectionner un client et un véhicule.');
@@ -68,7 +74,11 @@ export const QuickActionModals: React.FC = () => {
 
     const v = vehicles.find((veh) => veh.id === vId);
     const days = calculateDaysBetween(resStart, resEnd);
-    const amount = (v?.dailyRate || 40000) * days;
+    if (!v) {
+      setErrorMsg('Le véhicule sélectionné est introuvable.');
+      return;
+    }
+    const rentalPrice = calculateRentalPrice(v, days);
     let nextRef: string;
     try {
       nextRef = await getNextDocumentNumber('reservation');
@@ -87,14 +97,14 @@ export const QuickActionModals: React.FC = () => {
       endTime: '18:00',
       pickupLocation: 'Agence Centrale Dakar',
       returnLocation: 'Agence Centrale Dakar',
-      rateTypeApplied: 'JOURNALIER',
-      baseRate: v?.dailyRate || 40000,
+      rateTypeApplied: rentalPrice.rateType,
+      baseRate: rentalPrice.appliedDailyRate,
       totalDays: days,
       options: [],
       totalOptionsAmount: 0,
-      baseAmount: amount,
+      baseAmount: rentalPrice.amount,
       discountAmount: 0,
-      totalEstimatedAmount: amount,
+      totalEstimatedAmount: rentalPrice.amount,
       depositRequired: v?.depositAmount || 200000,
       depositStatus: 'NON_VERSEE',
       startMileage: v?.currentMileage,
@@ -115,11 +125,20 @@ export const QuickActionModals: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
     const cId = payClientId || clients[0]?.id;
-    if (!cId) return;
+    if (!cId || !payInvoiceId) {
+      setErrorMsg('Sélectionnez une facture à régler.');
+      return;
+    }
+    const invoice = invoices.find((record) => record.id === payInvoiceId);
+    if (!invoice) {
+      setErrorMsg('La facture sélectionnée est introuvable.');
+      return;
+    }
 
     const res = await addPayment({
       clientId: cId,
-      invoiceId: payInvoiceId || undefined,
+      invoiceId: payInvoiceId,
+      reservationId: invoice.reservationId,
       amount: payAmount,
       paymentMethod: payMethod,
       paymentType: 'FACTURE',
@@ -203,7 +222,7 @@ export const QuickActionModals: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Véhicule *</label>
               <select
-                value={resVehicleId}
+                value={resVehicleId || quickVehicle?.id || ''}
                 onChange={(e) => setResVehicleId(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               >
@@ -234,6 +253,34 @@ export const QuickActionModals: React.FC = () => {
                 />
               </div>
             </div>
+            {quickRentalPrice && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
+                {quickRentalPrice.rateType === 'MENSUEL' ? (
+                  <>
+                    <p>
+                      {quickRentalPrice.monthlyPeriods} mois × {formatCurrency(quickVehicle?.monthlyRate || 0, settings)}
+                      {quickRentalPrice.remainingDays > 0 &&
+                        ` + ${quickRentalPrice.remainingDays} jour(s) × ${formatCurrency(
+                          Math.max(0, (quickVehicle?.dailyRate || 0) - 5000),
+                          settings
+                        )}`}
+                    </p>
+                  </>
+                ) : (
+                  <p>
+                    {quickRentalDays} jour(s) × {formatCurrency(quickRentalPrice.appliedDailyRate, settings)} / jour
+                  </p>
+                )}
+                {quickRentalPrice.discountAmount > 0 && (
+                  <p className="mt-1 text-emerald-700">
+                    Remise longue durée : −{formatCurrency(quickRentalPrice.discountAmount, settings)}
+                  </p>
+                )}
+                <p className="mt-2 font-bold text-slate-900">
+                  Location : {formatCurrency(quickRentalPrice.amount, settings)}
+                </p>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
@@ -271,6 +318,7 @@ export const QuickActionModals: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Facture à régler</label>
               <select
+                required
                 value={payInvoiceId}
                 onChange={(e) => {
                   setPayInvoiceId(e.target.value);
@@ -282,9 +330,14 @@ export const QuickActionModals: React.FC = () => {
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               >
-                <option value="">Paiement libre direct</option>
+                <option value="">Sélectionner une facture...</option>
                 {invoices
-                  .filter((i) => !i.deletedAt && i.remainingAmount > 0)
+                  .filter((i) =>
+                    !i.deletedAt &&
+                    i.status !== 'ANNULEE' &&
+                    i.status !== 'BROUILLON' &&
+                    i.remainingAmount > 0
+                  )
                   .map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.number} - Reste : {formatCurrency(i.remainingAmount, settings)}
@@ -298,6 +351,7 @@ export const QuickActionModals: React.FC = () => {
                 <input
                   type="number"
                   min={1}
+                  max={invoices.find((invoice) => invoice.id === payInvoiceId)?.remainingAmount}
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(Number(e.target.value))}

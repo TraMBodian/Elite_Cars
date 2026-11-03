@@ -28,6 +28,7 @@ export const PaymentsView: React.FC = () => {
     deletePayment,
     invoices,
     clients,
+    vehicles,
     reservations,
     settings,
     openPreviewDoc,
@@ -46,7 +47,7 @@ export const PaymentsView: React.FC = () => {
     clientId: '',
     invoiceId: '',
     reservationId: '',
-    amount: 100000,
+    amount: 0,
     paymentMethod: 'MOBILE_MONEY' as PaymentMethod,
     paymentType: 'FACTURE' as PaymentType,
     referenceNumber: '',
@@ -89,6 +90,20 @@ export const PaymentsView: React.FC = () => {
     return Math.max(0, inCaution - outCaution);
   }, [activePayments]);
 
+  const getReservationBalance = (reservationId: string): number => {
+    const reservation = reservations.find((record) => record.id === reservationId);
+    if (!reservation) return 0;
+    const received = activePayments
+      .filter((payment) => payment.paymentType === 'FACTURE' || payment.paymentType === 'ENCAISSEMENT_DIRECT')
+      .filter((payment) => {
+        const linkedReservationId = payment.reservationId ??
+          invoices.find((invoice) => invoice.id === payment.invoiceId)?.reservationId;
+        return linkedReservationId === reservationId;
+      })
+      .reduce((total, payment) => total + payment.amount, 0);
+    return Math.max(0, reservation.totalEstimatedAmount - received);
+  };
+
   const handleOpenAdd = () => {
     setFormError(null);
     const firstInvoiceWithDue = invoices.find(
@@ -98,7 +113,7 @@ export const PaymentsView: React.FC = () => {
       clientId: firstInvoiceWithDue ? firstInvoiceWithDue.clientId : clients[0]?.id || '',
       invoiceId: firstInvoiceWithDue ? firstInvoiceWithDue.id : '',
       reservationId: '',
-      amount: firstInvoiceWithDue ? firstInvoiceWithDue.remainingAmount : 50000,
+      amount: firstInvoiceWithDue ? firstInvoiceWithDue.remainingAmount : 0,
       paymentMethod: 'MOBILE_MONEY',
       paymentType: 'FACTURE',
       referenceNumber: 'WAVE-TX-',
@@ -114,11 +129,13 @@ export const PaymentsView: React.FC = () => {
       setFormData((prev) => ({
         ...prev,
         invoiceId: inv.id,
+        paymentType: 'FACTURE',
         clientId: inv.clientId,
+        reservationId: inv.reservationId || '',
         amount: inv.remainingAmount,
       }));
     } else {
-      setFormData((prev) => ({ ...prev, invoiceId: '' }));
+      setFormData((prev) => ({ ...prev, invoiceId: '', reservationId: '' }));
     }
   };
 
@@ -133,6 +150,14 @@ export const PaymentsView: React.FC = () => {
 
     if (!formData.clientId) {
       setFormError('Veuillez sélectionner un client.');
+      return;
+    }
+    if (formData.paymentType === 'FACTURE' && !formData.invoiceId) {
+      setFormError('Sélectionnez la facture à régler pour suivre son solde.');
+      return;
+    }
+    if (formData.paymentType === 'ENCAISSEMENT_DIRECT' && !formData.reservationId) {
+      setFormError('Sélectionnez la réservation concernée par cet encaissement.');
       return;
     }
 
@@ -428,9 +453,13 @@ export const PaymentsView: React.FC = () => {
             <select
               value={formData.invoiceId}
               onChange={(e) => handleSelectInvoice(e.target.value)}
+              required={formData.paymentType === 'FACTURE'}
+              disabled={formData.paymentType !== 'FACTURE'}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium focus:ring-1 focus:ring-emerald-500"
             >
-              <option value="">Paiement direct (sans facture préalable)</option>
+              <option value="">
+                {formData.paymentType === 'FACTURE' ? 'Sélectionner une facture...' : 'Aucune facture'}
+              </option>
               {invoices
                 .filter(
                   (i) =>
@@ -474,7 +503,15 @@ export const PaymentsView: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Type d’opération *</label>
               <select
                 value={formData.paymentType}
-                onChange={(e) => setFormData({ ...formData, paymentType: e.target.value as any })}
+                onChange={(e) => {
+                  const paymentType = e.target.value as PaymentType;
+                  setFormData((previous) => ({
+                    ...previous,
+                    paymentType,
+                    invoiceId: paymentType === 'FACTURE' ? previous.invoiceId : '',
+                    reservationId: paymentType === 'ENCAISSEMENT_DIRECT' ? '' : previous.reservationId,
+                  }));
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold"
               >
                 <option value="FACTURE">Règlement Facture (Acompte ou Solde)</option>
@@ -485,6 +522,45 @@ export const PaymentsView: React.FC = () => {
             </div>
           </div>
 
+          {formData.paymentType === 'ENCAISSEMENT_DIRECT' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Location concernée *</label>
+              <select
+                required
+                value={formData.reservationId}
+                onChange={(e) => {
+                  const reservationId = e.target.value;
+                  const reservation = reservations.find((record) => record.id === reservationId);
+                  setFormData((previous) => ({
+                    ...previous,
+                    reservationId,
+                    clientId: reservation?.clientId || previous.clientId,
+                    amount: reservationId ? getReservationBalance(reservationId) : 0,
+                  }));
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+              >
+                <option value="">Sélectionner une location...</option>
+                {reservations
+                  .filter((reservation) =>
+                    !reservation.deletedAt &&
+                    reservation.status !== 'ANNULEE' &&
+                    !invoices.some((invoice) => invoice.reservationId === reservation.id) &&
+                    getReservationBalance(reservation.id) > 0
+                  )
+                  .map((reservation) => {
+                    const vehicle = vehicles.find((record) => record.id === reservation.vehicleId);
+                    const client = clients.find((record) => record.id === reservation.clientId);
+                    return (
+                      <option key={reservation.id} value={reservation.id}>
+                        {reservation.reference} · {vehicle?.brand} {vehicle?.model} · {client?.fullName} · Solde {formatCurrency(getReservationBalance(reservation.id), settings)}
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 bg-emerald-50/50 p-3 rounded-lg border border-emerald-100">
             <div>
               <label className="block text-xs font-semibold text-emerald-950 mb-1">Montant Encaissé (FCFA) *</label>
@@ -492,6 +568,13 @@ export const PaymentsView: React.FC = () => {
                 type="number"
                 required
                 min={1}
+                max={
+                  formData.invoiceId
+                    ? invoices.find((invoice) => invoice.id === formData.invoiceId)?.remainingAmount
+                    : formData.reservationId
+                      ? getReservationBalance(formData.reservationId)
+                      : undefined
+                }
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
                 className="w-full bg-white border border-emerald-300 rounded-lg p-2 text-sm font-black text-emerald-800"

@@ -24,6 +24,7 @@ import {
 } from '../data/mockData';
 import { isDateOverlapping } from '../utils/formatters';
 import { createId } from '../utils/ids';
+import { canManageVehicles } from '../utils/permissions';
 import { supabase } from '../lib/supabase';
 
 export interface AppInitialData {
@@ -72,7 +73,7 @@ interface AppContextType {
 
   // Vehicles
   vehicles: Vehicle[];
-  addVehicle: (vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>) => Vehicle;
+  addVehicle: (vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>) => Vehicle | null;
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => boolean;
   restoreVehicle: (id: string) => void;
@@ -639,7 +640,12 @@ export const AppProvider: React.FC<{
   };
 
   // Vehicles
-  const addVehicle = (vehicleData: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>): Vehicle => {
+  const addVehicle = (vehicleData: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>): Vehicle | null => {
+    if (!canManageVehicles(currentUser.role)) {
+      showToast('Seuls les administrateurs et gestionnaires peuvent ajouter un véhicule.', 'error');
+      return null;
+    }
+
     const newVehicle: Vehicle = {
       ...vehicleData,
       id: createId('veh'),
@@ -653,12 +659,22 @@ export const AppProvider: React.FC<{
   };
 
   const updateVehicle = (id: string, updates: Partial<Vehicle>) => {
+    if (!canManageVehicles(currentUser.role)) {
+      showToast('Seuls les administrateurs et gestionnaires peuvent modifier un véhicule.', 'error');
+      return;
+    }
+
     setVehicles((prev) => prev.map((v) => (v.id === id ? { ...v, ...updates } : v)));
     logAction('UPDATE', 'VEHICULE', id, `Mise à jour véhicule ID ${id}`);
     showToast('Véhicule mis à jour.');
   };
 
   const deleteVehicle = (id: string): boolean => {
+    if (!canManageVehicles(currentUser.role)) {
+      showToast('Seuls les administrateurs et gestionnaires peuvent retirer un véhicule.', 'error');
+      return false;
+    }
+
     const isCurrentlyRented = reservations.some(
       (r) => r.vehicleId === id && !r.deletedAt && (r.status === 'ACTIVE' || r.status === 'CONFIRMEE')
     );
@@ -673,6 +689,11 @@ export const AppProvider: React.FC<{
   };
 
   const restoreVehicle = (id: string) => {
+    if (!canManageVehicles(currentUser.role)) {
+      showToast('Seuls les administrateurs et gestionnaires peuvent restaurer un véhicule.', 'error');
+      return;
+    }
+
     const vehicle = vehicles.find((record) => record.id === id);
     if (!vehicle?.deletedAt) return;
     setVehicles((prev) => prev.map((record) => record.id === id ? { ...record, deletedAt: null } : record));
@@ -955,6 +976,9 @@ export const AppProvider: React.FC<{
     showToast(`Facture ${invoice.number} restaurée.`);
   };
 
+  const invoiceGenerationsInProgress = useRef(new Set<string>());
+  const paymentWritesInProgress = useRef(new Set<string>());
+
   const duplicateInvoice = async (id: string): Promise<Invoice | null> => {
     const original = invoices.find((inv) => inv.id === id);
     if (!original) throw new Error('Facture introuvable');
@@ -990,10 +1014,25 @@ export const AppProvider: React.FC<{
   const generateInvoiceFromReservation = async (reservationId: string): Promise<Invoice | null> => {
     const res = reservations.find((r) => r.id === reservationId);
     if (!res) return null;
+    if (payments.some((payment) =>
+      !payment.deletedAt &&
+      payment.paymentType === 'ENCAISSEMENT_DIRECT' &&
+      payment.reservationId === reservationId
+    )) {
+      showToast('Un encaissement direct existe déjà pour cette location. Ne créez pas une seconde facture.', 'error');
+      return null;
+    }
+    const existingInvoice = invoices.find((invoice) => invoice.reservationId === reservationId);
+    if (res.invoiceId || existingInvoice) {
+      showToast('Cette réservation possède déjà une facture.', 'warning');
+      return existingInvoice ?? invoices.find((invoice) => invoice.id === res.invoiceId) ?? null;
+    }
     if (res.totalDays <= 0) {
       showToast('La durée de la réservation doit être supérieure à zéro.', 'error');
       return null;
     }
+    if (invoiceGenerationsInProgress.current.has(reservationId)) return null;
+    invoiceGenerationsInProgress.current.add(reservationId);
 
     const client = clients.find((c) => c.id === res.clientId);
     const vehicle = vehicles.find((v) => v.id === res.vehicleId);
@@ -1002,6 +1041,7 @@ export const AppProvider: React.FC<{
     try {
       nextNumber = await getNextDocumentNumber('invoice');
     } catch {
+      invoiceGenerationsInProgress.current.delete(reservationId);
       return null;
     }
     const taxRate = settings.defaultTaxRatePercent ?? 18;
@@ -1082,88 +1122,168 @@ export const AppProvider: React.FC<{
 
     logAction('INVOICE_GENERATE', 'FACTURE', newInv.id, `Génération automatique facture ${newInv.number} depuis contrat ${res.reference}`);
     showToast(`Facture ${newInv.number} émise pour ${client?.fullName}.`);
+    invoiceGenerationsInProgress.current.delete(reservationId);
     return newInv;
   };
 
   // Payments
   // Business rule: "Le montant payé ne peut pas dépasser le montant total de la facture."
   const addPayment: AppContextType['addPayment'] = async (paymentData) => {
-    if (paymentData.amount <= 0) {
+    if (!Number.isFinite(paymentData.amount) || paymentData.amount <= 0) {
       showToast('Le montant du paiement doit être supérieur à 0.', 'error');
       return { success: false, error: 'Montant invalide' };
     }
 
+    if (paymentData.paymentType === 'FACTURE' && !paymentData.invoiceId) {
+      const error = 'Associez le paiement à une facture pour suivre le solde de la location.';
+      showToast(error, 'error');
+      return { success: false, error };
+    }
+    if (paymentData.paymentType !== 'FACTURE' && paymentData.invoiceId) {
+      const error = 'Seul un règlement de facture peut être associé à une facture.';
+      showToast(error, 'error');
+      return { success: false, error };
+    }
+    if (paymentData.paymentType === 'ENCAISSEMENT_DIRECT' && !paymentData.reservationId) {
+      const error = 'Associez cet encaissement direct à la réservation concernée.';
+      showToast(error, 'error');
+      return { success: false, error };
+    }
+    if (
+      paymentData.paymentType === 'ENCAISSEMENT_DIRECT' &&
+      invoices.some((invoice) => invoice.reservationId === paymentData.reservationId)
+    ) {
+      const error = 'Cette location possède une facture. Enregistrez le paiement sur la facture pour actualiser son solde.';
+      showToast(error, 'error');
+      return { success: false, error };
+    }
+
+    let linkedInvoice: Invoice | undefined;
     if (paymentData.invoiceId) {
-      const invoice = invoices.find((i) => i.id === paymentData.invoiceId);
-      if (!invoice) return { success: false, error: 'Facture introuvable' };
-      if (invoice.status === 'ANNULEE' || invoice.status === 'BROUILLON' || invoice.deletedAt) {
+      linkedInvoice = invoices.find((i) => i.id === paymentData.invoiceId);
+      if (!linkedInvoice) return { success: false, error: 'Facture introuvable' };
+      if (linkedInvoice.status === 'ANNULEE' || linkedInvoice.status === 'BROUILLON' || linkedInvoice.deletedAt) {
         return { success: false, error: 'Impossible de régler une facture en brouillon, annulée ou supprimée.' };
       }
 
-      if (paymentData.amount > invoice.remainingAmount) {
-        const errorMsg = `Le montant payé (${paymentData.amount.toLocaleString('fr-FR')} FCFA) dépasse le solde restant (${invoice.remainingAmount.toLocaleString('fr-FR')} FCFA).`;
+      if (paymentData.amount > linkedInvoice.remainingAmount) {
+        const errorMsg = `Le montant payé (${paymentData.amount.toLocaleString('fr-FR')} FCFA) dépasse le solde restant (${linkedInvoice.remainingAmount.toLocaleString('fr-FR')} FCFA).`;
         showToast(errorMsg, 'error');
         return { success: false, error: errorMsg };
       }
-
-    }
-
-    let receiptNumber = paymentData.receiptNumber;
-    if (!receiptNumber) {
-      try {
-        receiptNumber = await getNextDocumentNumber('receipt');
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Numéro de reçu indisponible.' };
+      if (
+        paymentData.reservationId &&
+        linkedInvoice.reservationId &&
+        paymentData.reservationId !== linkedInvoice.reservationId
+      ) {
+        const error = 'La réservation sélectionnée ne correspond pas à la facture.';
+        showToast(error, 'error');
+        return { success: false, error };
       }
     }
 
-    const newPayment: Payment = {
-      ...paymentData,
-      receiptNumber,
-      id: createId('pay'),
-      createdAt: new Date().toISOString(),
-      deletedAt: null,
-    };
+    const linkedReservationId = linkedInvoice?.reservationId ?? paymentData.reservationId;
+    if (linkedReservationId && (paymentData.paymentType === 'FACTURE' || paymentData.paymentType === 'ENCAISSEMENT_DIRECT')) {
+      const reservation = reservations.find((record) => record.id === linkedReservationId);
+      if (!reservation || reservation.clientId !== paymentData.clientId) {
+        const error = 'La réservation ou le client du paiement est invalide.';
+        showToast(error, 'error');
+        return { success: false, error };
+      }
+      const alreadyReceivedForReservation = payments
+        .filter((payment) => !payment.deletedAt && (
+          payment.paymentType === 'FACTURE' || payment.paymentType === 'ENCAISSEMENT_DIRECT'
+        ))
+        .filter((payment) => {
+          const paymentReservationId = payment.reservationId ??
+            invoices.find((invoice) => invoice.id === payment.invoiceId)?.reservationId;
+          return paymentReservationId === linkedReservationId;
+        })
+        .reduce((total, payment) => total + payment.amount, 0);
+      const remainingReservationBalance = Math.max(
+        0,
+        reservation.totalEstimatedAmount - alreadyReceivedForReservation
+      );
+      if (paymentData.amount > remainingReservationBalance) {
+        const error = `Le paiement dépasse le solde de cette location (${remainingReservationBalance.toLocaleString('fr-FR')} FCFA).`;
+        showToast(error, 'error');
+        return { success: false, error };
+      }
+    }
 
-    if (companyId && supabase) {
-      const { data, error } = await supabase.rpc('record_invoice_payment', {
-        target_company_id: companyId,
-        payment_payload: newPayment,
-      });
-      if (error) {
-        showToast(`Paiement non enregistré : ${error.message}`, 'error');
-        return { success: false, error: error.message };
+    const paymentLockKey = paymentData.invoiceId
+      ? `invoice:${paymentData.invoiceId}`
+      : linkedReservationId
+        ? `reservation:${linkedReservationId}`
+        : null;
+    if (paymentLockKey && paymentWritesInProgress.current.has(paymentLockKey)) {
+      const error = 'Un paiement est déjà en cours pour cette facture ou cette location. Réessayez dans un instant.';
+      showToast(error, 'warning');
+      return { success: false, error };
+    }
+    if (paymentLockKey) paymentWritesInProgress.current.add(paymentLockKey);
+
+    try {
+      let receiptNumber = paymentData.receiptNumber;
+      if (!receiptNumber) {
+        try {
+          receiptNumber = await getNextDocumentNumber('receipt');
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : 'Numéro de reçu indisponible.' };
+        }
       }
 
-      const result = data as { payment: Payment; invoice: Invoice | null };
-      if (!result?.payment) {
-        const message = 'La base de données n’a pas confirmé le paiement.';
-        showToast(message, 'error');
-        return { success: false, error: message };
+      const newPayment: Payment = {
+        ...paymentData,
+        reservationId: linkedReservationId,
+        receiptNumber,
+        id: createId('pay'),
+        createdAt: new Date().toISOString(),
+        deletedAt: null,
+      };
+
+      if (companyId && supabase) {
+        const { data, error } = await supabase.rpc('record_invoice_payment', {
+          target_company_id: companyId,
+          payment_payload: newPayment,
+        });
+        if (error) {
+          showToast(`Paiement non enregistré : ${error.message}`, 'error');
+          return { success: false, error: error.message };
+        }
+
+        const result = data as { payment: Payment; invoice: Invoice | null };
+        if (!result?.payment) {
+          const message = 'La base de données n’a pas confirmé le paiement.';
+          showToast(message, 'error');
+          return { success: false, error: message };
+        }
+        setPayments((prev) => [result.payment, ...prev.filter((payment) => payment.id !== result.payment.id)]);
+        if (result.invoice) {
+          setInvoices((prev) => prev.map((invoice) => invoice.id === result.invoice?.id ? result.invoice : invoice));
+        }
+        logAction(
+          'PAYMENT',
+          'PAIEMENT',
+          result.payment.id,
+          `Règlement de ${result.payment.amount} FCFA reçu par ${result.payment.paymentMethod} (Reçu ${result.payment.receiptNumber})`
+        );
+        showToast(`Paiement de ${result.payment.amount.toLocaleString('fr-FR')} FCFA enregistré.`);
+        return { success: true, payment: result.payment };
       }
-      setPayments((prev) => [result.payment, ...prev.filter((payment) => payment.id !== result.payment.id)]);
-      if (result.invoice) {
-        setInvoices((prev) => prev.map((invoice) => invoice.id === result.invoice?.id ? result.invoice : invoice));
-      }
+
+      setPayments((prev) => [newPayment, ...prev]);
       logAction(
         'PAYMENT',
         'PAIEMENT',
-        result.payment.id,
-        `Règlement de ${result.payment.amount} FCFA reçu par ${result.payment.paymentMethod} (Reçu ${result.payment.receiptNumber})`
+        newPayment.id,
+        `Règlement de ${newPayment.amount} FCFA reçu par ${newPayment.paymentMethod} (Reçu ${newPayment.receiptNumber})`
       );
-      showToast(`Paiement de ${result.payment.amount.toLocaleString('fr-FR')} FCFA enregistré.`);
-      return { success: true, payment: result.payment };
+      showToast(`Paiement de ${newPayment.amount.toLocaleString('fr-FR')} FCFA enregistré.`);
+      return { success: true, payment: newPayment };
+    } finally {
+      if (paymentLockKey) paymentWritesInProgress.current.delete(paymentLockKey);
     }
-
-    setPayments((prev) => [newPayment, ...prev]);
-    logAction(
-      'PAYMENT',
-      'PAIEMENT',
-      newPayment.id,
-      `Règlement de ${newPayment.amount} FCFA reçu par ${newPayment.paymentMethod} (Reçu ${newPayment.receiptNumber})`
-    );
-    showToast(`Paiement de ${newPayment.amount.toLocaleString('fr-FR')} FCFA enregistré.`);
-    return { success: true, payment: newPayment };
   };
 
   const deletePayment = async (id: string) => {
