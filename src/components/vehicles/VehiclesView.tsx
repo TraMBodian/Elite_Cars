@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Vehicle, VehicleStatus, VehicleCategory, FuelType, TransmissionType } from '../../types';
 import { formatCurrency, formatDate, exportToCSV, isDateExpiredOrSoon } from '../../utils/formatters';
+import { calculateWeeklyRate } from '../../utils/rentalPricing';
 import { canManageVehicles } from '../../utils/permissions';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
@@ -137,7 +138,7 @@ export const VehiclesView: React.FC = () => {
       seats: v.seats,
       currentMileage: v.currentMileage,
       dailyRate: v.dailyRate,
-      weeklyRate: v.weeklyRate,
+      weeklyRate: calculateWeeklyRate(v.dailyRate),
       monthlyRate: v.monthlyRate,
       depositAmount: v.depositAmount,
       status: v.status,
@@ -659,19 +660,22 @@ export const VehiclesView: React.FC = () => {
                 required
                 min="1"
                 value={formData.dailyRate || ''}
-                onChange={(e) => setFormData({ ...formData, dailyRate: Number(e.target.value) })}
+                onChange={(e) => {
+                  const dailyRate = Number(e.target.value);
+                  setFormData({ ...formData, dailyRate, weeklyRate: calculateWeeklyRate(dailyRate) });
+                }}
                 className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-bold"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-blue-900 mb-1">Tarif Semaine</label>
+              <label className="block text-xs font-semibold text-blue-900 mb-1">Tarif Semaine (7 jours)</label>
               <input
                 type="number"
-                min="0"
+                readOnly
                 value={formData.weeklyRate || ''}
-                onChange={(e) => setFormData({ ...formData, weeklyRate: Number(e.target.value) })}
-                className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs"
+                className="w-full cursor-not-allowed bg-slate-100 border border-blue-200 rounded-lg p-2 text-xs"
               />
+              <p className="mt-1 text-[10px] text-slate-500">7 × (tarif journalier − 5 000 FCFA)</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-blue-900 mb-1">Tarif Mois</label>

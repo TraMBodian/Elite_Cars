@@ -1,5 +1,10 @@
 import { Vehicle } from '../types';
 
+export const LONG_RENTAL_DAILY_DISCOUNT = 5000;
+
+export const calculateWeeklyRate = (dailyRate: number): number =>
+  Math.max(0, dailyRate - LONG_RENTAL_DAILY_DISCOUNT) * 7;
+
 export interface RentalPrice {
   amount: number;
   discountAmount: number;
@@ -11,7 +16,7 @@ export interface RentalPrice {
 
 export const calculateRentalPrice = (vehicle: Vehicle, days: number): RentalPrice => {
   const duration = Math.max(1, Math.floor(days));
-  const dailyDiscount = Math.min(5000, vehicle.dailyRate);
+  const dailyDiscount = Math.min(LONG_RENTAL_DAILY_DISCOUNT, vehicle.dailyRate);
   const discountedDailyRate = vehicle.dailyRate - dailyDiscount;
 
   if (duration >= 30 && vehicle.monthlyRate > 0) {
