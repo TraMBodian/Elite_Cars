@@ -13,6 +13,9 @@ export const canAccessTab = (role: UserRole, tab: string): boolean =>
 export const canManageVehicles = (role: UserRole): boolean =>
   role === 'ADMIN' || role === 'MANAGER';
 
+export const canAddVehicles = (role: UserRole): boolean =>
+  canManageVehicles(role) || role === 'EMPLOYEE';
+
 export const canUseQuickAction = (role: UserRole, action: 'RESERVATION' | 'INVOICE' | 'PAYMENT' | 'EXPENSE'): boolean => {
   if (role === 'ADMIN') return true;
   if (role === 'ACCOUNTANT') return action !== 'RESERVATION';

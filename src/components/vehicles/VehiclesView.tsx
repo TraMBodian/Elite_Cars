@@ -23,7 +23,7 @@ import {
 import { Vehicle, VehicleStatus, VehicleCategory, FuelType, TransmissionType } from '../../types';
 import { formatCurrency, formatDate, exportToCSV, isDateExpiredOrSoon } from '../../utils/formatters';
 import { calculateWeeklyRate } from '../../utils/rentalPricing';
-import { canManageVehicles } from '../../utils/permissions';
+import { canAddVehicles, canManageVehicles } from '../../utils/permissions';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
@@ -44,6 +44,7 @@ const hasVehicleSelections = (
 
 export const VehiclesView: React.FC = () => {
   const { currentUser, vehicles, addVehicle, updateVehicle, deleteVehicle, reservations, expenses, settings, openPreviewDoc } = useApp();
+  const canAddVehicle = canAddVehicles(currentUser.role);
   const canEditVehicles = canManageVehicles(currentUser.role);
 
   const [search, setSearch] = useState('');
@@ -261,7 +262,7 @@ export const VehiclesView: React.FC = () => {
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          {canEditVehicles && <button
+          {canAddVehicle && <button
             onClick={handleOpenAdd}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >

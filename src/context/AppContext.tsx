@@ -24,7 +24,7 @@ import {
 } from '../data/mockData';
 import { isDateOverlapping } from '../utils/formatters';
 import { createId } from '../utils/ids';
-import { canManageVehicles } from '../utils/permissions';
+import { canAddVehicles, canManageVehicles } from '../utils/permissions';
 import { supabase } from '../lib/supabase';
 
 export interface AppInitialData {
@@ -641,8 +641,8 @@ export const AppProvider: React.FC<{
 
   // Vehicles
   const addVehicle = (vehicleData: Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'>): Vehicle | null => {
-    if (!canManageVehicles(currentUser.role)) {
-      showToast('Seuls les administrateurs et gestionnaires peuvent ajouter un véhicule.', 'error');
+    if (!canAddVehicles(currentUser.role)) {
+      showToast('Vous n’êtes pas autorisé à ajouter un véhicule.', 'error');
       return null;
     }
 
