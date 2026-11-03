@@ -38,6 +38,12 @@ export const supabase =
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+        storage: window.sessionStorage,
       },
       })
     : null;
+
+if (supabaseUrl && supabase && typeof window !== 'undefined') {
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+  window.localStorage.removeItem(`sb-${projectRef}-auth-token`);
+}
