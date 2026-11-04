@@ -6,6 +6,18 @@ import { calculateDaysBetween, formatCurrency } from '../../utils/formatters';
 import { calculateRentalPrice } from '../../utils/rentalPricing';
 import { canUseQuickAction } from '../../utils/permissions';
 
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 export const QuickActionModals: React.FC = () => {
   const {
     quickModal,
@@ -34,10 +46,14 @@ export const QuickActionModals: React.FC = () => {
   const [resVehicleId, setResVehicleId] = useState('');
   const [resStart, setResStart] = useState(today);
   const [resEnd, setResEnd] = useState(next3Days);
+  const normalizedQuickStart = normalizeDateInput(resStart);
+  const normalizedQuickEnd = normalizeDateInput(resEnd);
   const quickVehicle = vehicles.find((vehicle) => vehicle.id === resVehicleId) ??
     vehicles.find((vehicle) => vehicle.status === 'DISPONIBLE') ??
     vehicles[0];
-  const quickRentalDays = calculateDaysBetween(resStart, resEnd);
+  const quickRentalDays = normalizedQuickStart && normalizedQuickEnd
+    ? calculateDaysBetween(normalizedQuickStart, normalizedQuickEnd)
+    : 0;
   const quickRentalPrice = quickVehicle ? calculateRentalPrice(quickVehicle, quickRentalDays) : null;
 
   // States for Quick Payment
@@ -66,14 +82,27 @@ export const QuickActionModals: React.FC = () => {
       return;
     }
 
-    const avail = checkVehicleAvailability(vId, resStart, resEnd);
+    const normalizedStart = normalizeDateInput(resStart);
+    const normalizedEnd = normalizeDateInput(resEnd);
+
+    if (!isValidDateInput(normalizedStart) || !isValidDateInput(normalizedEnd)) {
+      setErrorMsg('Les dates de réservation doivent être au format YYYY-MM-DD.');
+      return;
+    }
+
+    if (normalizedEnd < normalizedStart) {
+      setErrorMsg('La date de retour ne peut pas être antérieure à la date de départ.');
+      return;
+    }
+
+    const avail = checkVehicleAvailability(vId, normalizedStart, normalizedEnd);
     if (!avail.available) {
       setErrorMsg(`Véhicule indisponible du ${avail.conflictWith?.startDate} au ${avail.conflictWith?.endDate}`);
       return;
     }
 
     const v = vehicles.find((veh) => veh.id === vId);
-    const days = calculateDaysBetween(resStart, resEnd);
+    const days = calculateDaysBetween(normalizedStart, normalizedEnd);
     if (!v) {
       setErrorMsg('Le véhicule sélectionné est introuvable.');
       return;
@@ -91,9 +120,9 @@ export const QuickActionModals: React.FC = () => {
       reference: nextRef,
       clientId: cId,
       vehicleId: vId,
-      startDate: resStart,
+      startDate: normalizedStart,
       startTime: '09:00',
-      endDate: resEnd,
+      endDate: normalizedEnd,
       endTime: '18:00',
       pickupLocation: 'Agence Centrale Dakar',
       returnLocation: 'Agence Centrale Dakar',
@@ -239,7 +268,7 @@ export const QuickActionModals: React.FC = () => {
                 <input
                   type="date"
                   value={resStart}
-                  onChange={(e) => setResStart(e.target.value)}
+                  onChange={(e) => setResStart(normalizeDateInput(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
                 />
               </div>
@@ -248,7 +277,7 @@ export const QuickActionModals: React.FC = () => {
                 <input
                   type="date"
                   value={resEnd}
-                  onChange={(e) => setResEnd(e.target.value)}
+                  onChange={(e) => setResEnd(normalizeDateInput(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
                 />
               </div>

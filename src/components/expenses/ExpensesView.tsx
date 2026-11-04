@@ -20,6 +20,18 @@ import { Expense, ExpenseCategory, PaymentMethod } from '../../types';
 import { formatCurrency, formatDate, exportToCSV } from '../../utils/formatters';
 import { Modal } from '../common/Modal';
 
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 export const ExpensesView: React.FC = () => {
   const { expenses, addExpense, deleteExpense, vehicles, settings, currentUser, getNextDocumentNumber } = useApp();
 
@@ -91,6 +103,12 @@ export const ExpensesView: React.FC = () => {
     e.preventDefault();
     if (!formData.description.trim() || formData.amountHT <= 0) return;
 
+    const normalizedDate = normalizeDateInput(formData.date);
+    if (!isValidDateInput(normalizedDate)) {
+      window.alert('La date de dépense doit être au format YYYY-MM-DD.');
+      return;
+    }
+
     const taxAmount = formData.taxRatePercent > 0
       ? Math.round((formData.amountHT * formData.taxRatePercent) / 100)
       : 0;
@@ -111,7 +129,7 @@ export const ExpensesView: React.FC = () => {
       taxRatePercent: formData.taxRatePercent,
       amountTax: taxAmount,
       amountTTC,
-      date: formData.date,
+      date: normalizedDate,
       paymentMethod: formData.paymentMethod,
       vendorName: formData.vendorName,
       receiptAttachmentName: formData.receiptAttachmentName,
@@ -467,7 +485,7 @@ export const ExpensesView: React.FC = () => {
                 type="date"
                 required
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, date: normalizeDateInput(e.target.value) })}
                 className="w-full bg-white border border-rose-200 rounded-lg p-2 text-xs"
               />
             </div>

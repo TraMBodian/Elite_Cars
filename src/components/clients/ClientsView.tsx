@@ -23,6 +23,26 @@ import { formatCurrency, formatDate, exportToCSV } from '../../utils/formatters'
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
+const normalizeSenegalPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 9);
+  if (!digits) return '';
+  return `+221${digits}`;
+};
+
+const isValidSenegalPhone = (value: string): boolean => /^\+221\d{9}$/.test(value.trim());
+
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 export const ClientsView: React.FC = () => {
   const { clients, addClient, updateClient, deleteClient, invoices, reservations, payments, settings, openPreviewDoc } = useApp();
 
@@ -119,10 +139,27 @@ export const ClientsView: React.FC = () => {
     e.preventDefault();
     if (!formData.fullName.trim() || !formData.phone.trim()) return;
 
+    const normalizedPhone = normalizeSenegalPhone(formData.phone);
+    if (!isValidSenegalPhone(normalizedPhone)) {
+      window.alert('Le numéro de téléphone doit commencer par +221 et contenir 9 chiffres.');
+      return;
+    }
+
+    if (!isValidDateInput(formData.driverLicenseExpiry)) {
+      window.alert('La date de validité du permis doit être au format YYYY-MM-DD.');
+      return;
+    }
+
+    const nextData = {
+      ...formData,
+      phone: normalizedPhone,
+      driverLicenseExpiry: normalizeDateInput(formData.driverLicenseExpiry),
+    };
+
     if (editingClient) {
-      updateClient(editingClient.id, formData);
+      updateClient(editingClient.id, nextData);
     } else {
-      addClient(formData);
+      addClient(nextData);
     }
     setIsModalOpen(false);
   };
@@ -429,8 +466,10 @@ export const ClientsView: React.FC = () => {
                 type="tel"
                 required
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+221 77 000 00 00"
+                maxLength={12}
+                pattern="\+221[0-9]{9}"
+                onChange={(e) => setFormData({ ...formData, phone: normalizeSenegalPhone(e.target.value) })}
+                placeholder="+221770000000"
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>
@@ -488,7 +527,9 @@ export const ClientsView: React.FC = () => {
                 <input
                   type="date"
                   value={formData.driverLicenseExpiry}
-                  onChange={(e) => setFormData({ ...formData, driverLicenseExpiry: e.target.value })}
+                  maxLength={10}
+                  pattern="\d{4}-\d{2}-\d{2}"
+                  onChange={(e) => setFormData({ ...formData, driverLicenseExpiry: normalizeDateInput(e.target.value) })}
                   className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
                 />
               </div>

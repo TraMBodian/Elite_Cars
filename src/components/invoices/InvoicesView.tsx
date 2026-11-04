@@ -22,6 +22,18 @@ import { formatCurrency, formatDate, exportToCSV } from '../../utils/formatters'
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 export const InvoicesView: React.FC = () => {
   const {
     invoices,
@@ -183,6 +195,19 @@ export const InvoicesView: React.FC = () => {
     e.preventDefault();
     if (!formClientId) return;
 
+    const normalizedIssueDate = normalizeDateInput(formIssueDate);
+    const normalizedDueDate = normalizeDateInput(formDueDate);
+
+    if (!isValidDateInput(normalizedIssueDate) || !isValidDateInput(normalizedDueDate)) {
+      showToast('Les dates de facture doivent être au format YYYY-MM-DD.', 'error');
+      return;
+    }
+
+    if (normalizedDueDate < normalizedIssueDate) {
+      showToast('La date d’échéance ne peut pas être antérieure à la date d’émission.', 'error');
+      return;
+    }
+
     let nextNumber: string;
     try {
       nextNumber = await getNextDocumentNumber('invoice');
@@ -198,8 +223,8 @@ export const InvoicesView: React.FC = () => {
       number: nextNumber,
       clientId: formClientId,
       reservationId: formReservationId || undefined,
-      issueDate: formIssueDate,
-      dueDate: formDueDate,
+      issueDate: normalizedIssueDate,
+      dueDate: normalizedDueDate,
       items: formItems,
       subtotalHT: grossSubtotalHT,
       totalDiscount,
@@ -496,7 +521,7 @@ export const InvoicesView: React.FC = () => {
                 type="date"
                 required
                 value={formIssueDate}
-                onChange={(e) => setFormIssueDate(e.target.value)}
+                onChange={(e) => setFormIssueDate(normalizeDateInput(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>
@@ -507,7 +532,7 @@ export const InvoicesView: React.FC = () => {
                 type="date"
                 required
                 value={formDueDate}
-                onChange={(e) => setFormDueDate(e.target.value)}
+                onChange={(e) => setFormDueDate(normalizeDateInput(e.target.value))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-blue-800"
               />
             </div>

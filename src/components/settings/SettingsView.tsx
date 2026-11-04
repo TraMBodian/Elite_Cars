@@ -18,6 +18,14 @@ import { UserRole } from '../../types';
 import { formatDateTime } from '../../utils/formatters';
 import { Modal } from '../common/Modal';
 
+const normalizeSenegalPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 9);
+  if (!digits) return '';
+  return `+221${digits}`;
+};
+
+const isValidSenegalPhone = (value: string): boolean => /^\+221\d{9}$/.test(value.trim());
+
 export const SettingsView: React.FC = () => {
   const {
     settings,
@@ -54,8 +62,16 @@ export const SettingsView: React.FC = () => {
   const handleAddUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserData.name.trim() || !newUserData.email.trim()) return;
+
+    const normalizedPhone = normalizeSenegalPhone(newUserData.phone);
+    if (newUserData.phone && !isValidSenegalPhone(normalizedPhone)) {
+      window.alert('Le numéro de téléphone doit commencer par +221 et contenir 9 chiffres.');
+      return;
+    }
+
     addUser({
       ...newUserData,
+      phone: normalizedPhone,
       active: true,
     });
     setIsAddUserOpen(false);
@@ -214,9 +230,11 @@ export const SettingsView: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Téléphone de contact</label>
                 <input
-                  type="text"
+                  type="tel"
                   value={companyForm.phone}
-                  onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
+                  maxLength={12}
+                  pattern="\+221[0-9]{9}"
+                  onChange={(e) => setCompanyForm({ ...companyForm, phone: normalizeSenegalPhone(e.target.value) })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
                 />
               </div>
@@ -572,8 +590,10 @@ export const SettingsView: React.FC = () => {
             <input
               type="tel"
               value={newUserData.phone}
-              onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
-              placeholder="+221 77 000 00 00"
+              maxLength={12}
+              pattern="\+221[0-9]{9}"
+              onChange={(e) => setNewUserData({ ...newUserData, phone: normalizeSenegalPhone(e.target.value) })}
+              placeholder="+221770000000"
               className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
             />
           </div>

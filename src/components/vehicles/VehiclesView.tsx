@@ -43,6 +43,18 @@ const hasVehicleSelections = (
 ): data is Omit<Vehicle, 'id' | 'createdAt' | 'deletedAt'> =>
   Boolean(data.category && data.transmission && data.fuel && data.status);
 
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 export const VehiclesView: React.FC = () => {
   const { currentUser, vehicles, addVehicle, updateVehicle, deleteVehicle, reservations, expenses, settings, openPreviewDoc } = useApp();
   const canAddVehicle = canAddVehicles(currentUser.role);
@@ -179,10 +191,24 @@ export const VehiclesView: React.FC = () => {
       !hasVehicleSelections(formData)
     ) return;
 
+    const normalizedInsuranceExpiry = normalizeDateInput(formData.insuranceExpiry);
+    const normalizedTechnicalInspectionExpiry = normalizeDateInput(formData.technicalInspectionExpiry);
+
+    if (!isValidDateInput(normalizedInsuranceExpiry) || !isValidDateInput(normalizedTechnicalInspectionExpiry)) {
+      window.alert('Les dates d’assurance et de visite technique doivent respecter le format YYYY-MM-DD.');
+      return;
+    }
+
+    const nextVehicleData = {
+      ...formData,
+      insuranceExpiry: normalizedInsuranceExpiry,
+      technicalInspectionExpiry: normalizedTechnicalInspectionExpiry,
+    };
+
     if (editingVehicle) {
-      updateVehicle(editingVehicle.id, formData);
+      updateVehicle(editingVehicle.id, nextVehicleData);
     } else {
-      if (!addVehicle(formData)) return;
+      if (!addVehicle(nextVehicleData)) return;
     }
     setIsModalOpen(false);
   };
@@ -733,7 +759,7 @@ export const VehiclesView: React.FC = () => {
                 type="date"
                 required
                 value={formData.insuranceExpiry}
-                onChange={(e) => setFormData({ ...formData, insuranceExpiry: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, insuranceExpiry: normalizeDateInput(e.target.value) })}
                 className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>
@@ -753,7 +779,7 @@ export const VehiclesView: React.FC = () => {
                 type="date"
                 required
                 value={formData.technicalInspectionExpiry}
-                onChange={(e) => setFormData({ ...formData, technicalInspectionExpiry: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, technicalInspectionExpiry: normalizeDateInput(e.target.value) })}
                 className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>

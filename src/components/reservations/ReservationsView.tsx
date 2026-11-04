@@ -26,6 +26,18 @@ import { calculateRentalPrice } from '../../utils/rentalPricing';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 
+const normalizeDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (!digits || digits.length < 8) return trimmed.slice(0, 10);
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+};
+
+const isValidDateInput = (value: string): boolean => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+
 const AVAILABLE_OPTIONS: { name: string; unitPrice: number; chargeType: 'PAR_JOUR' | 'FIXE' }[] = [
   { name: 'Chauffeur VIP dédié', unitPrice: 15000, chargeType: 'PAR_JOUR' },
   { name: 'Assurance Rachat de Franchise', unitPrice: 10000, chargeType: 'PAR_JOUR' },
@@ -190,13 +202,21 @@ export const ReservationsView: React.FC = () => {
       return;
     }
 
-    if (formData.endDate < formData.startDate) {
+    const normalizedStartDate = normalizeDateInput(formData.startDate);
+    const normalizedEndDate = normalizeDateInput(formData.endDate);
+
+    if (!isValidDateInput(normalizedStartDate) || !isValidDateInput(normalizedEndDate)) {
+      setFormError('Les dates de réservation doivent être au format YYYY-MM-DD.');
+      return;
+    }
+
+    if (normalizedEndDate < normalizedStartDate) {
       setFormError('La date de retour ne peut pas être antérieure à la date de départ.');
       return;
     }
 
     // Availability validation check
-    const availability = checkVehicleAvailability(formData.vehicleId, formData.startDate, formData.endDate);
+    const availability = checkVehicleAvailability(formData.vehicleId, normalizedStartDate, normalizedEndDate);
     if (!availability.available) {
       setFormError(
         `Ce véhicule est déjà réservé du ${availability.conflictWith?.startDate} au ${availability.conflictWith?.endDate} (Réf: ${availability.conflictWith?.reference}).`
@@ -217,9 +237,9 @@ export const ReservationsView: React.FC = () => {
       reference: nextRef,
       clientId: formData.clientId,
       vehicleId: formData.vehicleId,
-      startDate: formData.startDate,
+      startDate: normalizedStartDate,
       startTime: formData.startTime,
-      endDate: formData.endDate,
+      endDate: normalizedEndDate,
       endTime: formData.endTime,
       pickupLocation: formData.pickupLocation,
       returnLocation: formData.returnLocation,
@@ -553,7 +573,7 @@ export const ReservationsView: React.FC = () => {
                 type="date"
                 required
                 value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, startDate: normalizeDateInput(e.target.value) })}
                 className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>
@@ -572,7 +592,7 @@ export const ReservationsView: React.FC = () => {
                 type="date"
                 required
                 value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, endDate: normalizeDateInput(e.target.value) })}
                 className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
               />
             </div>
