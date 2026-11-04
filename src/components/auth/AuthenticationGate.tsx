@@ -340,6 +340,20 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     );
   }
 
+  if (!session && !checkingSession && supabase) {
+    return (
+      <LoginScreen
+        email={email}
+        password={password}
+        authError={authError}
+        authMessage={authMessage}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onSubmit={handleSignIn}
+      />
+    );
+  }
+
   return (
     <AppProvider>
       {children}
@@ -349,6 +363,115 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     </AppProvider>
   );
 };
+
+interface LoginScreenProps {
+  email: string;
+  password: string;
+  authError: string;
+  authMessage: string;
+  onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}
+
+const LoginScreen: React.FC<LoginScreenProps> = ({
+  email,
+  password,
+  authError,
+  authMessage,
+  onEmailChange,
+  onPasswordChange,
+  onSubmit,
+}) => (
+  <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#fff7ed_0%,_#f8fafc_42%,_#e2e8f0_100%)] px-4 py-8">
+    <div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)] lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,204,105,0.35),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.2),_transparent_25%)]" />
+        <div className="relative z-10">
+          <img src="/elite-cars-logo.webp" alt="Elite Cars" className="h-16 w-auto object-contain" />
+        </div>
+        <div className="relative z-10">
+          <p className="text-sm uppercase tracking-[0.28em] text-amber-300">Fleet & accounting</p>
+          <h2 className="mt-4 max-w-sm text-4xl font-bold leading-tight">Gestion de flotte, réservations et facturation en un seul espace.</h2>
+          <p className="mt-4 max-w-md text-sm text-slate-300">
+            Suivez les véhicules, les clients, les paiements et les performances de votre activité avec un contrôle complet en temps réel.
+          </p>
+        </div>
+        <div className="relative z-10 flex items-center gap-3 text-sm text-slate-200">
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          Système en ligne et sécurisé
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center bg-white p-6 sm:p-8 lg:p-10">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center lg:hidden">
+            <img src="/elite-cars-logo.webp" alt="Elite Cars" className="mx-auto h-14 w-auto object-contain" />
+          </div>
+
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-600">Connexion</p>
+            <h1 className="mt-3 text-3xl font-bold text-slate-900">Bienvenue</h1>
+            <p className="mt-2 text-sm text-slate-500">Accédez à votre espace Elite Cars</p>
+          </div>
+
+          <form className="space-y-5" onSubmit={onSubmit}>
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => onEmailChange(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition focus:border-amber-500 focus:bg-white"
+                placeholder="admin@elitecars.sn"
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => onPasswordChange(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition focus:border-amber-500 focus:bg-white"
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {authError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {authError}
+              </div>
+            ) : null}
+
+            {authMessage ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                {authMessage}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Se connecter
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const SetupMessage: React.FC<React.PropsWithChildren> = ({ children }) => (
   <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-center text-sm text-slate-700">

@@ -1,5 +1,17 @@
 services:
   - type: web
+    name: elite-cars-frontend
+    runtime: node
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm preview --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+
+  - type: web
     name: elite-cars-backend
     runtime: python
     rootDir: backend
@@ -12,4 +24,8 @@ services:
       - key: DJANGO_DEBUG
         value: "false"
       - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
         sync: false
