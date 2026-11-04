@@ -24,7 +24,7 @@ import {
 } from '../data/mockData';
 import { isDateOverlapping } from '../utils/formatters';
 import { createId } from '../utils/ids';
-import { canAddVehicles, canManageVehicles } from '../utils/permissions';
+import { canAccessTab, canAddVehicles, canManageVehicles } from '../utils/permissions';
 import { supabase } from '../lib/supabase';
 
 export interface AppInitialData {
@@ -143,12 +143,34 @@ export const AppProvider: React.FC<{
   const getActiveTabStorageKey = (userId?: string) =>
     userId ? `autoloc_active_tab:${userId}` : 'autoloc_active_tab';
 
+  const readStoredActiveTab = (userId?: string): string => {
+    const candidates = [getActiveTabStorageKey(userId), 'autoloc_active_tab'];
+    for (const key of candidates) {
+      try {
+        const value = localStorage.getItem(key) ?? sessionStorage.getItem(key);
+        if (value && value !== 'null') return value;
+      } catch {
+        // Ignore storage access issues.
+      }
+    }
+    return 'dashboard';
+  };
+
+  const persistActiveTab = (nextTab: string, userId?: string) => {
+    try {
+      const key = getActiveTabStorageKey(userId);
+      const normalizedTab = nextTab || 'dashboard';
+      localStorage.setItem(key, normalizedTab);
+      sessionStorage.setItem(key, normalizedTab);
+    } catch {
+      // Ignore storage errors in private browsing or restricted environments.
+    }
+  };
+
   // Navigation
   const [activeTab, setActiveTabState] = useState<string>(() => {
     try {
-      const key = getActiveTabStorageKey(initialData?.currentUser?.id ?? currentUser?.id);
-      const saved = localStorage.getItem(key);
-      return saved || 'dashboard';
+      return readStoredActiveTab(initialData?.currentUser?.id);
     } catch {
       return 'dashboard';
     }
@@ -156,13 +178,7 @@ export const AppProvider: React.FC<{
   const setActiveTab = (tab: string) => {
     const nextTab = tab || 'dashboard';
     setActiveTabState(nextTab);
-    if (currentUser?.id) {
-      try {
-        localStorage.setItem(getActiveTabStorageKey(currentUser.id), nextTab);
-      } catch {
-        // Ignore storage errors in private browsing or restricted environments.
-      }
-    }
+    persistActiveTab(nextTab, currentUser?.id);
   };
 
   // Toasts
@@ -258,12 +274,23 @@ export const AppProvider: React.FC<{
 
   useEffect(() => {
     if (!currentUser?.id) return;
-    try {
-      localStorage.setItem(getActiveTabStorageKey(currentUser.id), activeTab);
-    } catch {
-      // Ignore storage errors in private browsing or restricted environments.
-    }
+    persistActiveTab(activeTab, currentUser.id);
   }, [activeTab, currentUser?.id]);
+
+  useEffect(() => {
+    const restoreTabOnReturn = () => {
+      if (!currentUser?.id) return;
+      const savedTab = readStoredActiveTab(currentUser.id);
+      if (savedTab && canAccessTab(currentUser.role, savedTab)) {
+        setActiveTabState(savedTab);
+      }
+    };
+
+    window.addEventListener('pageshow', restoreTabOnReturn);
+    return () => {
+      window.removeEventListener('pageshow', restoreTabOnReturn);
+    };
+  }, [currentUser?.id, currentUser?.role]);
 
   // Settings
   const [settings, setSettings] = useState<CompanySettings>(() => {
