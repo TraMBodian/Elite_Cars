@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   CalendarPlus,
@@ -16,6 +16,18 @@ export const Header: React.FC = () => {
   const { activeTab, setActiveTab, setQuickModal, resetDemoData, isCloudMode, currentUser, invoices, vehicles } = useApp();
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
 
   // Check overdue and urgent fleet items
   const overdueInvoices = invoices.filter((i) => !i.deletedAt && i.status === 'EN_RETARD');
@@ -150,7 +162,7 @@ export const Header: React.FC = () => {
           <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
 
           {/* Notifications Button */}
-          <div className="relative">
+          <div className="relative" ref={notificationRef}>
             <button type="button" onClick={() => setShowNotifications(!showNotifications)}
               className="relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 hover:bg-slate-100 transition"
               title="Notifications & Alertes"

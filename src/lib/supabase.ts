@@ -43,7 +43,4 @@ export const supabase =
       })
     : null;
 
-if (supabaseUrl && supabase && typeof window !== 'undefined') {
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-  window.localStorage.removeItem(`sb-${projectRef}-auth-token`);
-}
+

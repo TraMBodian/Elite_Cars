@@ -24,7 +24,12 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-valeur-temporaire-pour-build")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if os.environ.get("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}:
+        SECRET_KEY = "dev-secret-key-change-me"
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY is required in production. Set it in the environment before starting Django.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}

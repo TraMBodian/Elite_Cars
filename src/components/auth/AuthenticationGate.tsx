@@ -9,6 +9,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from '../../lib/supabase';
+import { ToastContainer } from '../common/ToastContainer';
 
 interface MembershipRow {
   company_id: string;
@@ -28,10 +29,10 @@ interface CloudBootstrap {
 const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const clearStoredActiveTabs = () => {
-  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
-    const key = localStorage.key(index);
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.sessionStorage.key(index);
     if (key?.startsWith('autoloc_active_tab')) {
-      localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
     }
   }
 };
@@ -283,11 +284,16 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
   if (!isSupabaseConfigured) {
     if (hasPartialSupabaseConfig || !import.meta.env.DEV) {
       return (
-        <SetupMessage>
-          {hasInvalidSupabaseUrl
-            ? 'La configuration Supabase est invalide : vérifiez VITE_SUPABASE_URL dans les variables d’environnement Vercel. Elle doit commencer par https:// et correspondre à l’URL de votre projet Supabase.'
-            : 'Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer les comptes et les données partagées.'}
-        </SetupMessage>
+        <AppProvider>
+          <SetupMessage>
+            {hasInvalidSupabaseUrl
+              ? 'La configuration Supabase est invalide : vérifiez VITE_SUPABASE_URL dans les variables d’environnement Vercel. Elle doit commencer par https:// et correspondre à l’URL de votre projet Supabase.'
+              : 'Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer les comptes et les données partagées.'}
+          </SetupMessage>
+          <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-900 shadow">
+            Mode démonstration — données locales non partagées
+          </div>
+        </AppProvider>
       );
     }
 
@@ -303,17 +309,23 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   if (checkingSession && session === undefined) {
     return (
-      <AppProvider>
-        {children}
-      </AppProvider>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3 text-slate-600">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
+          <p className="text-sm font-medium">Vérification de la session…</p>
+        </div>
+      </div>
     );
   }
 
-  if (session && loadingCompany) {
+  if (session && !cloudBootstrap && !authError) {
     return (
-      <AppProvider>
-        {children}
-      </AppProvider>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3 text-slate-600">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
+          <p className="text-sm font-medium">Chargement de votre espace Elite Cars…</p>
+        </div>
+      </div>
     );
   }
 
@@ -342,15 +354,18 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   if (!session && !checkingSession && supabase) {
     return (
-      <LoginScreen
-        email={email}
-        password={password}
-        authError={authError}
-        authMessage={authMessage}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
-        onSubmit={handleSignIn}
-      />
+      <AppProvider>
+        <LoginScreen
+          email={email}
+          password={password}
+          authError={authError}
+          authMessage={authMessage}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={handleSignIn}
+        />
+        <ToastContainer />
+      </AppProvider>
     );
   }
 
