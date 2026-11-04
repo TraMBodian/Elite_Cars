@@ -11,10 +11,10 @@ export const canAccessTab = (role: UserRole, tab: string): boolean =>
   tabPermissions[role].includes(tab);
 
 export const canManageVehicles = (role: UserRole): boolean =>
-  role === 'ADMIN' || role === 'MANAGER';
+  role === 'ADMIN' || role === 'MANAGER' || role === 'EMPLOYEE';
 
 export const canAddVehicles = (role: UserRole): boolean =>
-  canManageVehicles(role) || role === 'EMPLOYEE';
+  canManageVehicles(role);
 
 export const canUseQuickAction = (role: UserRole, action: 'RESERVATION' | 'INVOICE' | 'PAYMENT' | 'EXPENSE'): boolean => {
   if (role === 'ADMIN') return true;
