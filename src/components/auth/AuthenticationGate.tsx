@@ -385,21 +385,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => (
   <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#fff7ed_0%,_#f8fafc_42%,_#e2e8f0_100%)] px-4 py-8">
     <div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)] lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:items-center lg:justify-center">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,204,105,0.35),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.2),_transparent_25%)]" />
-        <div className="relative z-10">
-          <img src="/elite-cars-logo.webp" alt="Elite Cars" className="h-16 w-auto object-contain" />
-        </div>
-        <div className="relative z-10">
-          <p className="text-sm uppercase tracking-[0.28em] text-amber-300">Fleet & accounting</p>
-          <h2 className="mt-4 max-w-sm text-4xl font-bold leading-tight">Gestion de flotte, réservations et facturation en un seul espace.</h2>
-          <p className="mt-4 max-w-md text-sm text-slate-300">
-            Suivez les véhicules, les clients, les paiements et les performances de votre activité avec un contrôle complet en temps réel.
-          </p>
-        </div>
-        <div className="relative z-10 flex items-center gap-3 text-sm text-slate-200">
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-          Système en ligne et sécurisé
+        <div className="relative z-10 flex flex-col items-center">
+          <img src="/elite-cars-logo.webp" alt="Elite Cars" className="h-20 w-auto object-contain" />
         </div>
       </div>
 
