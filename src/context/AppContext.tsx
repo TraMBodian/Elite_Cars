@@ -140,9 +140,30 @@ export const AppProvider: React.FC<{
   initialData?: AppInitialData;
 }> = ({ children, companyId, initialData }) => {
   const isCloudMode = Boolean(companyId && initialData);
+  const getActiveTabStorageKey = (userId?: string) =>
+    userId ? `autoloc_active_tab:${userId}` : 'autoloc_active_tab';
 
   // Navigation
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    try {
+      const key = getActiveTabStorageKey(initialData?.currentUser?.id ?? currentUser?.id);
+      const saved = localStorage.getItem(key);
+      return saved || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
+  const setActiveTab = (tab: string) => {
+    const nextTab = tab || 'dashboard';
+    setActiveTabState(nextTab);
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(getActiveTabStorageKey(currentUser.id), nextTab);
+      } catch {
+        // Ignore storage errors in private browsing or restricted environments.
+      }
+    }
+  };
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -157,6 +178,10 @@ export const AppProvider: React.FC<{
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
   const signOut = () => {
+    const storageKey = getActiveTabStorageKey(currentUser?.id);
+    localStorage.removeItem(storageKey);
+    setActiveTabState('dashboard');
+
     if (!isCloudMode || !supabase) return;
     void supabase.auth.signOut().then(({ error }) => {
       if (error) showToast(`Déconnexion impossible : ${error.message}`, 'error');
@@ -230,6 +255,15 @@ export const AppProvider: React.FC<{
     return saved ? JSON.parse(saved) : initialUsers;
   });
   const [currentUser, setCurrentUser] = useState<User>(() => initialData?.currentUser || users[0] || initialUsers[0]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    try {
+      localStorage.setItem(getActiveTabStorageKey(currentUser.id), activeTab);
+    } catch {
+      // Ignore storage errors in private browsing or restricted environments.
+    }
+  }, [activeTab, currentUser?.id]);
 
   // Settings
   const [settings, setSettings] = useState<CompanySettings>(() => {

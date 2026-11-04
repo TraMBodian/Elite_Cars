@@ -27,6 +27,15 @@ interface CloudBootstrap {
 
 const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
+const clearStoredActiveTabs = () => {
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith('autoloc_active_tab')) {
+      localStorage.removeItem(key);
+    }
+  }
+};
+
 const companyDefaults: CompanySettings = {
   ...initialCompanySettings,
   name: 'Elite Cars',
@@ -150,7 +159,10 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setAuthError('');
-      if (event === 'SIGNED_OUT') setPassword('');
+      if (event === 'SIGNED_OUT') {
+        clearStoredActiveTabs();
+        setPassword('');
+      }
     });
 
     return () => {
@@ -251,6 +263,7 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   const handleSignOut = async () => {
     if (!supabase) return;
+    clearStoredActiveTabs();
     const { error } = await supabase.auth.signOut();
     if (error) setAuthError(`Déconnexion impossible : ${error.message}`);
   };
