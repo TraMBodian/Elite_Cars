@@ -172,9 +172,9 @@ export const initialVehicles: Vehicle[] = [
     status: 'LOUE',
     color: 'Blanc Nacré',
     imageUrl: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=600&q=80',
-    insuranceExpiry: '2026-12-31',
+    insuranceExpiry: '2027-02-28',
     insuranceCompany: 'AXA Assurances Sénégal',
-    technicalInspectionExpiry: '2026-11-15',
+    technicalInspectionExpiry: '2026-12-18',
     lastOilChangeMileage: 25000,
     nextOilChangeMileage: 30000,
     nextOilChangeDate: '2026-11-01',
@@ -199,9 +199,9 @@ export const initialVehicles: Vehicle[] = [
     status: 'DISPONIBLE',
     color: 'Gris Métallisé',
     imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80',
-    insuranceExpiry: '2026-10-28', // Attention: expire dans 5 jours ! Alerte
+    insuranceExpiry: '2027-02-10',
     insuranceCompany: 'Sunu Assurances',
-    technicalInspectionExpiry: '2026-12-10',
+    technicalInspectionExpiry: '2026-12-20',
     lastOilChangeMileage: 40000,
     nextOilChangeMileage: 45000,
     nextOilChangeDate: '2026-12-05',
@@ -253,9 +253,9 @@ export const initialVehicles: Vehicle[] = [
     status: 'DISPONIBLE',
     color: 'Orange Atacama',
     imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80',
-    insuranceExpiry: '2026-11-30',
+    insuranceExpiry: '2027-01-25',
     insuranceCompany: 'Allianz Sénégal',
-    technicalInspectionExpiry: '2026-10-20', // Expirée ! Alerte critique
+    technicalInspectionExpiry: '2027-02-12',
     lastOilChangeMileage: 50000,
     nextOilChangeMileage: 55000,
     createdAt: '2026-02-01T08:30:00Z',
@@ -507,7 +507,7 @@ export const initialInvoices: Invoice[] = [
     reservationId: 'res-2',
     clientId: 'cli-2',
     issueDate: '2026-10-22',
-    dueDate: '2026-10-25',
+    dueDate: '2026-12-05',
     items: [
       {
         id: 'item-4',
@@ -552,7 +552,7 @@ export const initialInvoices: Invoice[] = [
     reservationId: 'res-4',
     clientId: 'cli-3',
     issueDate: '2026-10-15',
-    dueDate: '2026-10-21', // Échéance dépassée ! Facture EN RETARD
+    dueDate: '2026-12-05',
     items: [
       {
         id: 'item-6',
@@ -585,7 +585,7 @@ export const initialInvoices: Invoice[] = [
     number: 'FAC-2026-0004',
     clientId: 'cli-5',
     issueDate: '2026-10-18',
-    dueDate: '2026-11-02',
+    dueDate: '2026-12-10',
     items: [
       {
         id: 'item-7',

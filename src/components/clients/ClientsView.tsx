@@ -203,16 +203,14 @@ export const ClientsView: React.FC = () => {
         {/* Filter pills & buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
           <div className="flex bg-slate-100 p-1 rounded-lg">
-            <button
-              onClick={() => setTypeFilter('ALL')}
+            <button type="button" onClick={() => setTypeFilter('ALL')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
                 typeFilter === 'ALL' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
               }`}
             >
               Tous ({activeClients.length})
             </button>
-            <button
-              onClick={() => setTypeFilter('ENTREPRISE')}
+            <button type="button" onClick={() => setTypeFilter('ENTREPRISE')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1 ${
                 typeFilter === 'ENTREPRISE' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
               }`}
@@ -220,8 +218,7 @@ export const ClientsView: React.FC = () => {
               <Building2 className="h-3 w-3" />
               <span>Entreprises</span>
             </button>
-            <button
-              onClick={() => setTypeFilter('PARTICULIER')}
+            <button type="button" onClick={() => setTypeFilter('PARTICULIER')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1 ${
                 typeFilter === 'PARTICULIER' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
               }`}
@@ -231,8 +228,7 @@ export const ClientsView: React.FC = () => {
             </button>
           </div>
 
-          <button
-            onClick={handleExportCSV}
+          <button type="button" onClick={handleExportCSV}
             className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
             title="Exporter la liste en CSV"
           >
@@ -240,8 +236,7 @@ export const ClientsView: React.FC = () => {
             <span className="hidden sm:inline">Export CSV</span>
           </button>
 
-          <button
-            onClick={handleOpenAdd}
+          <button type="button" onClick={handleOpenAdd}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -353,22 +348,19 @@ export const ClientsView: React.FC = () => {
 
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setSelectedClient(client)}
+                        <button type="button" onClick={() => setSelectedClient(client)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition"
                           title="Fiche détaillée & historique"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => handleOpenEdit(client)}
+                        <button type="button" onClick={() => handleOpenEdit(client)}
                           className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded transition"
                           title="Modifier"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             if (window.confirm(`Supprimer le client ${client.fullName} ?`)) {
                               deleteClient(client.id);
                             }

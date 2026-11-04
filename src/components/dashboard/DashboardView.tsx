@@ -152,15 +152,13 @@ export const DashboardView: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('factures')}
+            <button type="button" onClick={() => setActiveTab('factures')}
               className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition"
             >
               Voir les impayés
             </button>
             {vehicleAlerts.length > 0 && (
-              <button
-                onClick={() => setActiveTab('vehicules')}
+              <button type="button" onClick={() => setActiveTab('vehicules')}
                 className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition"
               >
                 Alertes flotte
@@ -271,16 +269,14 @@ export const DashboardView: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-              <button
-                onClick={() => setRevenuePeriod('6M')}
+              <button type="button" onClick={() => setRevenuePeriod('6M')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${
                   revenuePeriod === '6M' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 6 mois
               </button>
-              <button
-                onClick={() => setRevenuePeriod('12M')}
+              <button type="button" onClick={() => setRevenuePeriod('12M')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${
                   revenuePeriod === '12M' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -318,8 +314,7 @@ export const DashboardView: React.FC = () => {
 
           <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Moyenne mensuelle : ~4 800 000 FCFA</span>
-            <button
-              onClick={() => setActiveTab('rapports')}
+            <button type="button" onClick={() => setActiveTab('rapports')}
               className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
             >
               <span>Voir le rapport complet</span>
@@ -335,8 +330,7 @@ export const DashboardView: React.FC = () => {
               <h3 className="text-base font-bold text-slate-900">Répartition des Dépenses</h3>
               <p className="text-xs text-slate-500 mt-0.5">Par catégorie d’imputation</p>
             </div>
-            <button
-              onClick={() => setActiveTab('depenses')}
+            <button type="button" onClick={() => setActiveTab('depenses')}
               className="text-xs text-blue-600 hover:underline font-medium"
             >
               Gérer
@@ -395,8 +389,7 @@ export const DashboardView: React.FC = () => {
               <FileText className="h-4 w-4 text-blue-600" />
               <h4 className="text-sm font-bold text-slate-900">Dernières Factures</h4>
             </div>
-            <button
-              onClick={() => setActiveTab('factures')}
+            <button type="button" onClick={() => setActiveTab('factures')}
               className="text-xs font-semibold text-blue-600 hover:text-blue-800"
             >
               Tout voir
@@ -432,8 +425,7 @@ export const DashboardView: React.FC = () => {
             })}
           </div>
 
-          <button
-            onClick={() => setQuickModal('INVOICE')}
+          <button type="button" onClick={() => setQuickModal('INVOICE')}
             className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 transition"
           >
             + Nouvelle Facture
@@ -447,8 +439,7 @@ export const DashboardView: React.FC = () => {
               <CreditCard className="h-4 w-4 text-emerald-600" />
               <h4 className="text-sm font-bold text-slate-900">Derniers Paiements</h4>
             </div>
-            <button
-              onClick={() => setActiveTab('paiements')}
+            <button type="button" onClick={() => setActiveTab('paiements')}
               className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
             >
               Tout voir
@@ -481,8 +472,7 @@ export const DashboardView: React.FC = () => {
             })}
           </div>
 
-          <button
-            onClick={() => setQuickModal('PAYMENT')}
+          <button type="button" onClick={() => setQuickModal('PAYMENT')}
             className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 transition"
           >
             + Encaisser un paiement
@@ -496,8 +486,7 @@ export const DashboardView: React.FC = () => {
               <CalendarCheck2 className="h-4 w-4 text-indigo-600" />
               <h4 className="text-sm font-bold text-slate-900">Réservations Récentes</h4>
             </div>
-            <button
-              onClick={() => setActiveTab('reservations')}
+            <button type="button" onClick={() => setActiveTab('reservations')}
               className="text-xs font-semibold text-blue-600 hover:text-blue-800"
             >
               Tout voir
@@ -536,8 +525,7 @@ export const DashboardView: React.FC = () => {
             })}
           </div>
 
-          <button
-            onClick={() => setQuickModal('RESERVATION')}
+          <button type="button" onClick={() => setQuickModal('RESERVATION')}
             className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold rounded-lg border border-blue-200 transition"
           >
             + Nouvelle Réservation

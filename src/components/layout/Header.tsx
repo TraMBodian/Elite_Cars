@@ -109,8 +109,7 @@ export const Header: React.FC = () => {
         {/* Quick Action Buttons & Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Quick Action: New Reservation */}
-          {canUseQuickAction(currentUser.role, 'RESERVATION') && <button
-            onClick={() => setQuickModal('RESERVATION')}
+          {canUseQuickAction(currentUser.role, 'RESERVATION') && <button type="button" onClick={() => setQuickModal('RESERVATION')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
             title="Créer une réservation"
           >
@@ -119,8 +118,7 @@ export const Header: React.FC = () => {
           </button>}
 
           {/* Quick Action: New Invoice */}
-          {canUseQuickAction(currentUser.role, 'INVOICE') && <button
-            onClick={() => {
+          {canUseQuickAction(currentUser.role, 'INVOICE') && <button type="button" onClick={() => {
               setActiveTab('factures');
               setQuickModal('INVOICE');
             }}
@@ -132,8 +130,7 @@ export const Header: React.FC = () => {
           </button>}
 
           {/* Quick Action: New Payment */}
-          {canUseQuickAction(currentUser.role, 'PAYMENT') && <button
-            onClick={() => setQuickModal('PAYMENT')}
+          {canUseQuickAction(currentUser.role, 'PAYMENT') && <button type="button" onClick={() => setQuickModal('PAYMENT')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition"
             title="Enregistrer un paiement"
           >
@@ -142,8 +139,7 @@ export const Header: React.FC = () => {
           </button>}
 
           {/* Quick Action: New Expense */}
-          {canUseQuickAction(currentUser.role, 'EXPENSE') && <button
-            onClick={() => setQuickModal('EXPENSE')}
+          {canUseQuickAction(currentUser.role, 'EXPENSE') && <button type="button" onClick={() => setQuickModal('EXPENSE')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition"
             title="Ajouter une dépense"
           >
@@ -155,15 +151,18 @@ export const Header: React.FC = () => {
 
           {/* Notifications Button */}
           <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition"
+            <button type="button" onClick={() => setShowNotifications(!showNotifications)}
+              className="relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-slate-500 hover:bg-slate-100 transition"
               title="Notifications & Alertes"
             >
-              <Bell className="h-4 w-4" />
-              {totalAlerts > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-600 ring-2 ring-white animate-pulse" />
-              )}
+              <span className="relative">
+                <Bell className="h-4 w-4" />
+                {totalAlerts > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white ring-2 ring-white animate-pulse">
+                    {totalAlerts > 9 ? '9+' : totalAlerts}
+                  </span>
+                )}
+              </span>
             </button>
 
             {/* Dropdown notifications */}
@@ -173,8 +172,7 @@ export const Header: React.FC = () => {
                   <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
                     Alertes & Rappels ({totalAlerts})
                   </h4>
-                  <button
-                    onClick={() => setShowNotifications(false)}
+                  <button type="button" onClick={() => setShowNotifications(false)}
                     className="text-slate-400 hover:text-slate-600 text-xs"
                   >
                     Fermer
@@ -220,8 +218,7 @@ export const Header: React.FC = () => {
 
           {/* Reset Demo Data button */}
           {!isCloudMode && (
-            <button
-              onClick={() => setShowConfirmReset(true)}
+            <button type="button" onClick={() => setShowConfirmReset(true)}
               className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               title="Réinitialiser les données de démo"
             >
@@ -244,14 +241,12 @@ export const Header: React.FC = () => {
             Voulez-vous restaurer les enregistrements de test ? Vos modifications locales seront remplacées.
           </p>
           <div className="flex justify-end gap-3 pt-3">
-            <button
-              onClick={() => setShowConfirmReset(false)}
+            <button type="button" onClick={() => setShowConfirmReset(false)}
               className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
             >
               Annuler
             </button>
-            <button
-              onClick={() => {
+            <button type="button" onClick={() => {
                 resetDemoData();
                 setShowConfirmReset(false);
               }}

@@ -368,8 +368,7 @@ CREATE TABLE expenses (
 
       {/* Tabs */}
       <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-2">
-        <button
-          onClick={() => setActiveTab('DJANGO_MODELS')}
+        <button type="button" onClick={() => setActiveTab('DJANGO_MODELS')}
           className={`px-3 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeTab === 'DJANGO_MODELS'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -380,8 +379,7 @@ CREATE TABLE expenses (
           <span>Modèles Django (models.py)</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('SQL_NEON')}
+        <button type="button" onClick={() => setActiveTab('SQL_NEON')}
           className={`px-3 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeTab === 'SQL_NEON'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -392,8 +390,7 @@ CREATE TABLE expenses (
           <span>Schéma SQL (PostgreSQL / Neon)</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('REST_ENDPOINTS')}
+        <button type="button" onClick={() => setActiveTab('REST_ENDPOINTS')}
           className={`px-3 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeTab === 'REST_ENDPOINTS'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -404,8 +401,7 @@ CREATE TABLE expenses (
           <span>Endpoints REST & Permissions</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('NEXTJS_TREE')}
+        <button type="button" onClick={() => setActiveTab('NEXTJS_TREE')}
           className={`px-3 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeTab === 'NEXTJS_TREE'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -422,8 +418,7 @@ CREATE TABLE expenses (
         <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-md overflow-hidden relative">
           <div className="flex justify-between items-center pb-3 border-b border-slate-800 mb-4">
             <span className="text-xs font-mono text-emerald-400 font-bold">backend/autoloc/models.py</span>
-            <button
-              onClick={() => copyCode('DJANGO', djangoModelsCode)}
+            <button type="button" onClick={() => copyCode('DJANGO', djangoModelsCode)}
               className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded"
             >
               {copied === 'DJANGO' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -441,8 +436,7 @@ CREATE TABLE expenses (
         <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-md overflow-hidden relative">
           <div className="flex justify-between items-center pb-3 border-b border-slate-800 mb-4">
             <span className="text-xs font-mono text-blue-400 font-bold">database/schema.sql (Neon PostgreSQL DDL)</span>
-            <button
-              onClick={() => copyCode('SQL', sqlPostgresCode)}
+            <button type="button" onClick={() => copyCode('SQL', sqlPostgresCode)}
               className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded"
             >
               {copied === 'SQL' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -492,8 +486,7 @@ CREATE TABLE expenses (
         <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-md overflow-hidden relative">
           <div className="flex justify-between items-center pb-3 border-b border-slate-800 mb-4">
             <span className="text-xs font-mono text-amber-400 font-bold">Structure Arborescence Next.js 15 (App Router)</span>
-            <button
-              onClick={() => copyCode('TREE', nextJsTree)}
+            <button type="button" onClick={() => copyCode('TREE', nextJsTree)}
               className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded"
             >
               {copied === 'TREE' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}

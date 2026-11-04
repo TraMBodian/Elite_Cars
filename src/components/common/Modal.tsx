@@ -62,8 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
-          <button
-            onClick={onClose}
+          <button type="button" onClick={onClose}
             className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
           >
             <X className="h-5 w-5" />

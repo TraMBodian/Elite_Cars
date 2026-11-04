@@ -183,12 +183,23 @@ export const AppProvider: React.FC<{
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'success',
+    autoDismissMs?: number,
+  ) => {
     const id = Date.now().toString() + Math.random().toString().slice(2, 6);
     setToasts((prev) => [...prev, { id, type, message }]);
+
+    if (autoDismissMs === undefined) {
+      if (type === 'warning' || type === 'info') return;
+      autoDismissMs = 4500;
+    }
+
+    if (autoDismissMs <= 0) return;
     setTimeout(() => {
       removeToast(id);
-    }, 4500);
+    }, autoDismissMs);
   };
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

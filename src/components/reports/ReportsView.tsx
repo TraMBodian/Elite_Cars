@@ -131,8 +131,7 @@ export const ReportsView: React.FC = () => {
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Navigation Tabs */}
         <div className="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto">
-          <button
-            onClick={() => setActiveReportTab('RENTABILITE_FLOTTE')}
+          <button type="button" onClick={() => setActiveReportTab('RENTABILITE_FLOTTE')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 ${
               activeReportTab === 'RENTABILITE_FLOTTE'
                 ? 'bg-white text-blue-700 shadow-xs'
@@ -142,8 +141,7 @@ export const ReportsView: React.FC = () => {
             <Car className="h-3.5 w-3.5" />
             <span>Rentabilité par Véhicule</span>
           </button>
-          <button
-            onClick={() => setActiveReportTab('CREANCES_IMPAYES')}
+          <button type="button" onClick={() => setActiveReportTab('CREANCES_IMPAYES')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 ${
               activeReportTab === 'CREANCES_IMPAYES'
                 ? 'bg-white text-blue-700 shadow-xs'
@@ -153,8 +151,7 @@ export const ReportsView: React.FC = () => {
             <AlertCircle className="h-3.5 w-3.5" />
             <span>Balance Âgée des Impayés</span>
           </button>
-          <button
-            onClick={() => setActiveReportTab('DEPENSES_ANALYTIQUE')}
+          <button type="button" onClick={() => setActiveReportTab('DEPENSES_ANALYTIQUE')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 ${
               activeReportTab === 'DEPENSES_ANALYTIQUE'
                 ? 'bg-white text-blue-700 shadow-xs'
@@ -168,8 +165,7 @@ export const ReportsView: React.FC = () => {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={
+          <button type="button" onClick={
               activeReportTab === 'RENTABILITE_FLOTTE'
                 ? handleExportRentabiliteCSV
                 : handleExportImpayesCSV
@@ -180,8 +176,7 @@ export const ReportsView: React.FC = () => {
             <span>Export CSV</span>
           </button>
 
-          <button
-            onClick={handlePrint}
+          <button type="button" onClick={handlePrint}
             className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Printer className="h-3.5 w-3.5" />

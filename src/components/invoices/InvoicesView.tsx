@@ -304,16 +304,14 @@ export const InvoicesView: React.FC = () => {
             <option value="ANNULEE">Annulées</option>
           </select>
 
-          <button
-            onClick={handleExportCSV}
+          <button type="button" onClick={handleExportCSV}
             className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button
-            onClick={handleOpenCreate}
+          <button type="button" onClick={handleOpenCreate}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -399,8 +397,7 @@ export const InvoicesView: React.FC = () => {
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {/* Imprimer / PDF */}
-                        <button
-                          onClick={() => openPreviewDoc('INVOICE', inv)}
+                        <button type="button" onClick={() => openPreviewDoc('INVOICE', inv)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition"
                           title="Imprimer / Exporter Facture PDF"
                         >
@@ -409,8 +406,7 @@ export const InvoicesView: React.FC = () => {
 
                         {/* Fast Payment */}
                         {inv.remainingAmount > 0 && inv.status !== 'ANNULEE' && (
-                          <button
-                            onClick={() => setQuickModal('PAYMENT')}
+                          <button type="button" onClick={() => setQuickModal('PAYMENT')}
                             className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[10px] shadow-xs flex items-center gap-1"
                             title="Encaisser un paiement"
                           >
@@ -420,8 +416,7 @@ export const InvoicesView: React.FC = () => {
                         )}
 
                         {/* Dupliquer */}
-                        <button
-                          onClick={() => { void duplicateInvoice(inv.id); }}
+                        <button type="button" onClick={() => { void duplicateInvoice(inv.id); }}
                           className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition"
                           title="Dupliquer la facture"
                         >
@@ -429,8 +424,7 @@ export const InvoicesView: React.FC = () => {
                         </button>
 
                         {/* Envoyer par email */}
-                        <button
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             setEmailModalInvoice(inv);
                             setEmailRecipient(client?.email || '');
                           }}
@@ -442,8 +436,7 @@ export const InvoicesView: React.FC = () => {
 
                         {/* Annuler avec motif */}
                         {inv.status !== 'ANNULEE' && (
-                          <button
-                            onClick={() => setCancelReasonInvoice(inv)}
+                          <button type="button" onClick={() => setCancelReasonInvoice(inv)}
                             className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded transition"
                             title="Annuler la facture"
                           >
@@ -452,8 +445,7 @@ export const InvoicesView: React.FC = () => {
                         )}
 
                         {/* Supprimer (Verrouillé si payée selon la règle métier) */}
-                        <button
-                          onClick={() => deleteInvoice(inv.id)}
+                        <button type="button" onClick={() => deleteInvoice(inv.id)}
                           disabled={inv.paidAmount > 0}
                           className={`p-1.5 rounded transition ${
                             inv.paidAmount > 0
@@ -687,14 +679,12 @@ export const InvoicesView: React.FC = () => {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setCancelReasonInvoice(null)}
+              <button type="button" onClick={() => setCancelReasonInvoice(null)}
                 className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold"
               >
                 Retour
               </button>
-              <button
-                onClick={handleConfirmCancel}
+              <button type="button" onClick={handleConfirmCancel}
                 disabled={!cancelReason.trim()}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-xs"
               >

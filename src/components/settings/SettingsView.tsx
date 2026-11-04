@@ -82,8 +82,7 @@ export const SettingsView: React.FC = () => {
     <div className="space-y-6">
       {/* Settings Sub-Navigation */}
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-2">
-        <button
-          onClick={() => setActiveSubTab('COMPANY')}
+        <button type="button" onClick={() => setActiveSubTab('COMPANY')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeSubTab === 'COMPANY'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -94,8 +93,7 @@ export const SettingsView: React.FC = () => {
           <span>Profil Société & Coordonnées</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('FINANCE')}
+        <button type="button" onClick={() => setActiveSubTab('FINANCE')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeSubTab === 'FINANCE'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -106,8 +104,7 @@ export const SettingsView: React.FC = () => {
           <span>Devise, TVA & Facturation</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('USERS')}
+        <button type="button" onClick={() => setActiveSubTab('USERS')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeSubTab === 'USERS'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -118,8 +115,7 @@ export const SettingsView: React.FC = () => {
           <span>Utilisateurs & Rôles ({users.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('AUDIT')}
+        <button type="button" onClick={() => setActiveSubTab('AUDIT')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 ${
             activeSubTab === 'AUDIT'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -400,8 +396,7 @@ export const SettingsView: React.FC = () => {
                 Les invitations se font depuis le tableau de bord Supabase et doivent être associées à Elite Cars.
               </p>
             ) : (
-              <button
-                onClick={() => setIsAddUserOpen(true)}
+              <button type="button" onClick={() => setIsAddUserOpen(true)}
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -471,8 +466,7 @@ export const SettingsView: React.FC = () => {
 
                     <td className="py-3.5 px-4 text-right">
                       {!isCloudMode && currentUser.id !== u.id && (
-                        <button
-                          onClick={() => toggleUserActive(u.id)}
+                        <button type="button" onClick={() => toggleUserActive(u.id)}
                           className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
                             u.active
                               ? 'text-rose-600 hover:bg-rose-50'

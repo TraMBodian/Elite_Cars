@@ -47,15 +47,13 @@ export const DocumentPreviewModal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrint}
+            <button type="button" onClick={handlePrint}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
             >
               <Printer className="h-4 w-4" />
               <span>Imprimer / Sauvegarder en PDF</span>
             </button>
-            <button
-              onClick={closePreviewDoc}
+            <button type="button" onClick={closePreviewDoc}
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
             >
               <X className="h-5 w-5" />

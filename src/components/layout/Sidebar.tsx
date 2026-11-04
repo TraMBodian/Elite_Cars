@@ -148,8 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
-            <button
-              key={item.id}
+            <button type="button" key={item.id}
               onClick={() => setActiveTab(item.id)}
               title={collapsed ? item.label : undefined}
               aria-label={collapsed ? item.label : undefined}
@@ -215,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             </div>}
           </div>
           {isCloudMode && (
-            <button onClick={signOut} aria-label="Se déconnecter" title="Se déconnecter" className={`flex items-center rounded-lg py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white ${collapsed ? 'justify-center px-1.5' : 'mt-3 w-full gap-2 px-2'}`}>
+            <button type="button" onClick={signOut} aria-label="Se déconnecter" title="Se déconnecter" className={`flex items-center rounded-lg py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white ${collapsed ? 'justify-center px-1.5' : 'mt-3 w-full gap-2 px-2'}`}>
               <LogOut className="h-3.5 w-3.5" />
               {!collapsed && 'Se déconnecter'}
             </button>

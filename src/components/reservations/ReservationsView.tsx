@@ -338,16 +338,14 @@ export const ReservationsView: React.FC = () => {
             <option value="ANNULEE">Annulées</option>
           </select>
 
-          <button
-            onClick={handleExportCSV}
+          <button type="button" onClick={handleExportCSV}
             className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button
-            onClick={handleOpenAdd}
+          <button type="button" onClick={handleOpenAdd}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -435,8 +433,7 @@ export const ReservationsView: React.FC = () => {
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Imprimer / Visualiser Contrat */}
-                        <button
-                          onClick={() => openPreviewDoc('CONTRACT', res)}
+                        <button type="button" onClick={() => openPreviewDoc('CONTRACT', res)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition"
                           title="Imprimer le Contrat Officiel"
                         >
@@ -445,8 +442,7 @@ export const ReservationsView: React.FC = () => {
 
                         {/* Fast Action: Générer la facture */}
                         {!res.invoiceId && res.status !== 'ANNULEE' && (
-                          <button
-                            onClick={() => generateInvoiceFromReservation(res.id)}
+                          <button type="button" onClick={() => generateInvoiceFromReservation(res.id)}
                             className="px-2 py-1 rounded bg-slate-900 text-white font-semibold text-[10px] hover:bg-slate-800 shadow-xs"
                             title="Créer la facture en 1 clic"
                           >
@@ -456,8 +452,7 @@ export const ReservationsView: React.FC = () => {
 
                         {/* Convertir en départ actif */}
                         {res.status === 'CONFIRMEE' && (
-                          <button
-                            onClick={() => handleStartRental(res)}
+                          <button type="button" onClick={() => handleStartRental(res)}
                             className="px-2 py-1 rounded bg-emerald-600 text-white font-semibold text-[10px] hover:bg-emerald-700 shadow-xs"
                             title="Remettre les clés & Démarrer la location"
                           >
@@ -467,8 +462,7 @@ export const ReservationsView: React.FC = () => {
 
                         {/* Clôturer / Restituer */}
                         {res.status === 'ACTIVE' && (
-                          <button
-                            onClick={() => handleOpenCloseModal(res)}
+                          <button type="button" onClick={() => handleOpenCloseModal(res)}
                             className="px-2 py-1 rounded bg-amber-600 text-white font-semibold text-[10px] hover:bg-amber-700 shadow-xs"
                             title="Restitution & Contrôle Kilométrage"
                           >
@@ -478,8 +472,7 @@ export const ReservationsView: React.FC = () => {
 
                         {/* Annuler */}
                         {res.status !== 'TERMINEE' && res.status !== 'ANNULEE' && (
-                          <button
-                            onClick={() => {
+                          <button type="button" onClick={() => {
                               const reason = prompt('Motif d’annulation de la réservation :');
                               if (reason) cancelReservation(res.id, reason);
                             }}
@@ -791,14 +784,12 @@ export const ReservationsView: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => setIsCloseModalOpen(false)}
+              <button type="button" onClick={() => setIsCloseModalOpen(false)}
                 className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold"
               >
                 Annuler
               </button>
-              <button
-                onClick={handleConfirmClose}
+              <button type="button" onClick={handleConfirmClose}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs"
               >
                 Confirmer la Clôture & Libérer le véhicule

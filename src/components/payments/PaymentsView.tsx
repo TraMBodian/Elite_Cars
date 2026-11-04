@@ -301,16 +301,14 @@ export const PaymentsView: React.FC = () => {
             <option value="ENCAISSEMENT_DIRECT">Encaissement direct</option>
           </select>
 
-          <button
-            onClick={handleExportCSV}
+          <button type="button" onClick={handleExportCSV}
             className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button
-            onClick={handleOpenAdd}
+          <button type="button" onClick={handleOpenAdd}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -412,15 +410,13 @@ export const PaymentsView: React.FC = () => {
 
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => openPreviewDoc('RECEIPT', p)}
+                        <button type="button" onClick={() => openPreviewDoc('RECEIPT', p)}
                           className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-slate-100 rounded transition"
                           title="Imprimer le Reçu Officiel"
                         >
                           <Printer className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             if (window.confirm(`Supprimer le versement ${p.receiptNumber} ?`)) {
                               deletePayment(p.id);
                             }

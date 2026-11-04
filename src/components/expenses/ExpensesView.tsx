@@ -251,16 +251,14 @@ export const ExpensesView: React.FC = () => {
             ))}
           </select>
 
-          <button
-            onClick={handleExportCSV}
+          <button type="button" onClick={handleExportCSV}
             className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <button
-            onClick={handleOpenAdd}
+          <button type="button" onClick={handleOpenAdd}
             className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-xs transition"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -335,8 +333,7 @@ export const ExpensesView: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => {
+                      <button type="button" onClick={() => {
                           if (window.confirm(`Supprimer la dépense ${exp.reference} ?`)) {
                             deleteExpense(exp.id);
                           }

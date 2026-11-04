@@ -136,7 +136,7 @@ const loadCompanyData = async (session: Session): Promise<CloudBootstrap> => {
 };
 
 const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [checkingSession, setCheckingSession] = useState(true);
   const [loadingCompany, setLoadingCompany] = useState(false);
   const [cloudBootstrap, setCloudBootstrap] = useState<CloudBootstrap | null>(null);
@@ -146,18 +146,30 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
   const [authMessage, setAuthMessage] = useState('');
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setSession(null);
+      setCheckingSession(false);
+      return;
+    }
 
     let mounted = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      if (error) setAuthError(error.message);
-      setSession(data.session);
-      setCheckingSession(false);
-    });
+    void supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) setAuthError(error.message);
+        setSession(data.session ?? null);
+      })
+      .catch((error: unknown) => {
+        if (!mounted) return;
+        setSession(null);
+        setAuthError(error instanceof Error ? error.message : 'Impossible de vérifier la session.');
+      })
+      .finally(() => {
+        if (mounted) setCheckingSession(false);
+      });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
+      setSession(nextSession ?? null);
       setAuthError('');
       if (event === 'SIGNED_OUT') {
         clearStoredActiveTabs();
@@ -289,8 +301,20 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     );
   }
 
-  if (checkingSession || loadingCompany) {
-    return <SetupMessage>Connexion à l’espace Elite Cars…</SetupMessage>;
+  if (checkingSession && session === undefined) {
+    return (
+      <AppProvider>
+        {children}
+      </AppProvider>
+    );
+  }
+
+  if (session && loadingCompany) {
+    return (
+      <AppProvider>
+        {children}
+      </AppProvider>
+    );
   }
 
   if (session && cloudBootstrap) {
@@ -307,61 +331,22 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   if (session && authError) {
     return (
-      <SetupMessage>
-        <p>{authError}</p>
-        <button onClick={handleSignOut} className="mt-4 font-semibold text-blue-700 hover:underline">
-          Se déconnecter
-        </button>
-      </SetupMessage>
+      <AppProvider>
+        {children}
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-900 shadow">
+          mode démo — données locales non partagées
+        </div>
+      </AppProvider>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <form onSubmit={handleSignIn} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-xl bg-slate-900 p-2">
-            <img src="/elite-cars-logo.webp" alt="Elite Cars" className="h-auto w-36" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Elite Cars</h1>
-            <p className="text-sm text-slate-500">Connexion à votre espace de gestion</p>
-          </div>
-        </div>
-
-        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="login-email">
-          Adresse e-mail
-        </label>
-        <input
-          id="login-email"
-          type="email"
-          autoComplete="username"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-
-        <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="login-password">
-          Mot de passe
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-
-        {authMessage && <p role="status" className="mb-4 text-sm text-slate-600">{authMessage}</p>}
-        {authError && <p role="alert" className="mb-4 text-sm text-red-700">{authError}</p>}
-        <button type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-          Se connecter
-        </button>
-      </form>
-    </div>
+    <AppProvider>
+      {children}
+      <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-900 shadow">
+        mode démo — données locales non partagées
+      </div>
+    </AppProvider>
   );
 };
 
