@@ -546,6 +546,16 @@ export const AppProvider: React.FC<{
       setAuditLogs((local) => mergeCollection('audit_logs', getCollection<AuditLog>('audit_logs'), local));
     };
 
+    let disposed = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let wasDisconnected = false;
+    const scheduleRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (!disposed) void applyRemoteRecords();
+      }, 250);
+    };
+
     const channel = client
       .channel(`business-records-${companyId}`)
       .on(
@@ -556,17 +566,41 @@ export const AppProvider: React.FC<{
           table: 'business_records',
           filter: `company_id=eq.${companyId}`,
         },
-        () => {
-          void applyRemoteRecords();
-        }
+        scheduleRefresh
       )
       .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          showToast('La synchronisation en temps réel est interrompue. Rechargez la page pour réessayer.', 'warning');
+        if (status === 'SUBSCRIBED') {
+          // Rattrape les changements manqués pendant une coupure.
+          if (wasDisconnected) {
+            wasDisconnected = false;
+            showToast('Synchronisation en temps réel rétablie.', 'success');
+          }
+          scheduleRefresh();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // supabase-js retente automatiquement la connexion ; on avertit une seule fois.
+          if (!wasDisconnected && !disposed) {
+            wasDisconnected = true;
+            showToast('Synchronisation en temps réel interrompue, reconnexion en cours…', 'warning');
+          }
         }
       });
 
+    // Filet de sécurité : rechargement au retour sur l'onglet / reconnexion réseau, et en périodique.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') scheduleRefresh();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', scheduleRefresh);
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') scheduleRefresh();
+    }, 60000);
+
     return () => {
+      disposed = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', scheduleRefresh);
       void client.removeChannel(channel);
     };
   }, [companyId, initialData]);
