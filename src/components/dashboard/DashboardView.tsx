@@ -78,27 +78,28 @@ export const DashboardView: React.FC = () => {
   const occupancyRate = totalFleet > 0 ? Math.round((rentedVehicles.length / totalFleet) * 100) : 0;
 
   // 7. Graphique des revenus (12 mois simulés / réels)
-  const monthsList = [
-    { label: 'Nov 25', key: '2025-11', amount: 3200000 },
-    { label: 'Déc 25', key: '2025-12', amount: 4800000 },
-    { label: 'Jan 26', key: '2026-01', amount: 3900000 },
-    { label: 'Fév 26', key: '2026-02', amount: 4200000 },
-    { label: 'Mar 26', key: '2026-03', amount: 4600000 },
-    { label: 'Avr 26', key: '2026-04', amount: 5100000 },
-    { label: 'Mai 26', key: '2026-05', amount: 4900000 },
-    { label: 'Juin 26', key: '2026-06', amount: 5400000 },
-    { label: 'Juil 26', key: '2026-07', amount: 6200000 },
-    { label: 'Août 26', key: '2026-08', amount: 7100000 },
-    { label: 'Sep 26', key: '2026-09', amount: 5800000 },
-    {
-      label: 'Oct 26',
-      key: '2026-10',
-      amount: monthlyRevenue > 0 ? monthlyRevenue : 2200700,
-    },
-  ];
+  const MONTH_LABELS = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+  const nowDate = new Date();
+  const monthsList = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(nowDate.getFullYear(), nowDate.getMonth() - (11 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const amount = invoices
+      .filter((inv) => !inv.deletedAt && inv.status !== 'ANNULEE' && inv.issueDate.startsWith(key))
+      .reduce((acc, inv) => acc + inv.totalTTC, 0);
+    return {
+      key,
+      amount,
+      label: MONTH_LABELS[date.getMonth()],
+      year: String(date.getFullYear()).slice(-2),
+    };
+  });
+  const chartCurrentKey = monthsList[monthsList.length - 1].key;
 
   const displayedMonths = revenuePeriod === '6M' ? monthsList.slice(-6) : monthsList;
   const maxRevenue = Math.max(...displayedMonths.map((m) => m.amount), 1);
+  const averageRevenue = Math.round(
+    displayedMonths.reduce((acc, m) => acc + m.amount, 0) / displayedMonths.length
+  );
 
   // 8. Dépenses par catégorie ce mois
   const categoryLabels: Record<string, string> = {
@@ -287,33 +288,54 @@ export const DashboardView: React.FC = () => {
           </div>
 
           {/* SVG Bar Chart */}
-          <div className="h-56 w-full flex items-end gap-2 sm:gap-4 pt-6 pb-2 px-2">
-            {displayedMonths.map((m) => {
-              const heightPercent = Math.max(12, Math.round((m.amount / maxRevenue) * 100));
-              const isCurrent = m.key === currentMonthPrefix;
-              return (
-                <div key={m.key} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                  <div className="text-[10px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {(m.amount / 1000000).toFixed(1)}M
-                  </div>
+          <div className="w-full px-2">
+            {/* Zone des barres : hauteur fixe, toutes les barres partent de la même ligne de base */}
+            <div className="h-44 flex items-end gap-1.5 sm:gap-3 border-b border-slate-200">
+              {displayedMonths.map((m) => {
+                const heightPercent = m.amount > 0 ? Math.max(4, Math.round((m.amount / maxRevenue) * 100)) : 0;
+                const isCurrent = m.key === chartCurrentKey;
+                return (
                   <div
-                    style={{ height: `${heightPercent}%` }}
-                    className={`w-full rounded-t-md transition-all duration-300 relative ${
-                      isCurrent
-                        ? 'bg-blue-600 group-hover:bg-blue-700 shadow-xs'
-                        : 'bg-slate-200 group-hover:bg-blue-400'
+                    key={m.key}
+                    className="flex-1 min-w-0 h-full flex flex-col items-center justify-end group"
+                    title={`${m.label} 20${m.year} : ${m.amount.toLocaleString('fr-FR')} ${settings.currencySymbol}`}
+                  >
+                    <div className="mb-1 text-[10px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {(m.amount / 1000000).toFixed(1)}M
+                    </div>
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className={`w-full rounded-t-md transition-all duration-300 ${
+                        isCurrent
+                          ? 'bg-blue-600 group-hover:bg-blue-700 shadow-xs'
+                          : 'bg-slate-200 group-hover:bg-blue-400'
+                      }`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {/* Rangée des libellés : même grille que les barres, format identique pour chaque mois */}
+            <div className="mt-2 flex gap-1.5 sm:gap-3">
+              {displayedMonths.map((m) => {
+                const isCurrent = m.key === chartCurrentKey;
+                return (
+                  <div
+                    key={m.key}
+                    className={`flex-1 min-w-0 text-center leading-tight ${
+                      isCurrent ? 'font-bold text-blue-700' : 'text-slate-500'
                     }`}
-                  />
-                  <span className={`text-[11px] truncate ${isCurrent ? 'font-bold text-blue-700' : 'text-slate-500'}`}>
-                    {m.label}
-                  </span>
-                </div>
-              );
-            })}
+                  >
+                    <span className="block text-[11px] whitespace-nowrap">{m.label}</span>
+                    <span className="block text-[10px] opacity-70">{m.year}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Moyenne mensuelle : ~4 800 000 FCFA</span>
+            <span>Moyenne mensuelle : {formatCurrency(averageRevenue, settings)}</span>
             <button type="button" onClick={() => setActiveTab('rapports')}
               className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
             >

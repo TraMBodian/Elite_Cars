@@ -29,11 +29,33 @@ interface CloudBootstrap {
 const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 const clearStoredActiveTabs = () => {
-  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
-    const key = window.sessionStorage.key(index);
-    if (key?.startsWith('autoloc_active_tab')) {
-      window.sessionStorage.removeItem(key);
+  for (const storage of [window.sessionStorage, window.localStorage]) {
+    try {
+      for (let index = storage.length - 1; index >= 0; index -= 1) {
+        const key = storage.key(index);
+        if (key?.startsWith('autoloc_active_tab')) {
+          storage.removeItem(key);
+        }
+      }
+    } catch {
+      // Ignore storage access issues.
     }
+  }
+};
+
+// Détecte synchroniquement s'il existe une session à restaurer (ou un retour d'authentification),
+// afin d'afficher directement le formulaire de connexion sinon, sans écran de chargement intermédiaire.
+const mayHaveStoredSession = (): boolean => {
+  try {
+    const storage = window.sessionStorage;
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith('sb-') && key.endsWith('-auth-token')) return true;
+    }
+    const { hash, search } = window.location;
+    return /access_token=|refresh_token=|[?&]code=/.test(hash + search);
+  } catch {
+    return true;
   }
 };
 
@@ -137,8 +159,11 @@ const loadCompanyData = async (session: Session): Promise<CloudBootstrap> => {
 };
 
 const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [initialStoredSession] = useState(mayHaveStoredSession);
+  const [session, setSession] = useState<Session | null | undefined>(
+    initialStoredSession ? undefined : null,
+  );
+  const [checkingSession, setCheckingSession] = useState(initialStoredSession);
   const [loadingCompany, setLoadingCompany] = useState(false);
   const [cloudBootstrap, setCloudBootstrap] = useState<CloudBootstrap | null>(null);
   const [email, setEmail] = useState('');
@@ -260,12 +285,38 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     };
   }, [session]);
 
+  const isBooting = Boolean(
+    (checkingSession && session === undefined) || (session && !cloudBootstrap && !authError),
+  );
+  const [splashStarted, setSplashStarted] = useState(false);
+  const [splashMinElapsed, setSplashMinElapsed] = useState(false);
+
+  useEffect(() => {
+    if (isBooting) setSplashStarted(true);
+  }, [isBooting]);
+
+  // L'animation joue en entier (durée courte et bornée), sans retarder davantage l'accès à l'application.
+  useEffect(() => {
+    if (!splashStarted || splashMinElapsed) return;
+    const timer = setTimeout(() => setSplashMinElapsed(true), SPLASH_MIN_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [splashStarted, splashMinElapsed]);
+
+  useEffect(() => {
+    if (!session && !checkingSession) {
+      setSplashStarted(false);
+      setSplashMinElapsed(false);
+    }
+  }, [session, checkingSession]);
+
   const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!supabase) return;
 
     setAuthError('');
     setAuthMessage('');
+    // Une nouvelle connexion arrive toujours sur le tableau de bord.
+    clearStoredActiveTabs();
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setAuthError(error.message);
@@ -307,26 +358,8 @@ const AuthenticationGate: React.FC<React.PropsWithChildren> = ({ children }) => 
     );
   }
 
-  if (checkingSession && session === undefined) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3 text-slate-600">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-          <p className="text-sm font-medium">Vérification de la session…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (session && !cloudBootstrap && !authError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3 text-slate-600">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-          <p className="text-sm font-medium">Chargement de votre espace Elite Cars…</p>
-        </div>
-      </div>
-    );
+  if (isBooting || (splashStarted && !splashMinElapsed && session && cloudBootstrap)) {
+    return <SplashScreen />;
   }
 
   if (session && cloudBootstrap) {
@@ -474,6 +507,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
       </div>
     </div>
+  </div>
+);
+
+const SPLASH_MIN_DURATION_MS = 1700;
+
+const SplashScreen: React.FC = () => (
+  <div
+    className="splash-root relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950"
+    role="status"
+    aria-label="Chargement"
+  >
+    {/* Séquence : le nom apparaît, la voiture arrive, puis repart en poussant le nom hors de l'écran (puis écran sombre). */}
+    <div className="splash-pair flex items-center" aria-hidden="true">
+      <img src="/elite-cars-logo-car.webp" alt="" className="splash-car h-[72px] w-auto" />
+      <img src="/elite-cars-logo-text.webp" alt="" className="splash-text h-[72px] w-auto" />
+    </div>
+    <style>{`
+      .splash-text { opacity: 0; animation: splash-fade 0.4s ease-out 0s forwards; }
+      .splash-car { transform: translateX(-70vw); animation: splash-car-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards; }
+      .splash-pair { animation: splash-drive-out 0.6s cubic-bezier(0.55, 0, 0.9, 0.4) 1s forwards; }
+      @keyframes splash-fade { to { opacity: 1; } }
+      @keyframes splash-car-in { to { transform: translateX(0); } }
+      @keyframes splash-drive-out { to { transform: translateX(120vw); } }
+      @media (prefers-reduced-motion: reduce) {
+        .splash-text, .splash-car, .splash-pair { animation: none; opacity: 1; transform: none; }
+      }
+    `}</style>
   </div>
 );
 
